@@ -1,181 +1,154 @@
 import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
-const STORAGE_KEY = 'todo_app_data';
+export const useTodos = (token) => {
+  const [data, setData] = useState({ todos: [], history: [], bin: [] });
 
-const defaultState = {
-  todos: [],
-  bin: [],
-  history: [], 
-  lastResetDate: new Date().toDateString(),
-};
-
-export const useTodos = () => {
-  const [data, setData] = useState(() => {
+  const fetchTodos = async () => {
+    if (!token) return;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { ...defaultState, ...parsed };
-      }
-    } catch (e) {
-      console.error("Failed to load local storage", e);
-    }
-    return defaultState;
-  });
-
-  useEffect(() => {
-    const today = new Date().toDateString();
-    if (data.lastResetDate !== today) {
-      setData((prev) => {
-        const updatedTodos = prev.todos.map(todo => {
-          if (todo.category === 'daily' && todo.completed) {
-            return { ...todo, completed: false };
-          }
-          return todo;
-        });
-        return { ...prev, todos: updatedTodos, lastResetDate: today };
+      const res = await fetch('/api/todos', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (res.ok) {
+        let todos = await res.json();
+        // Map _id to id for the frontend components
+        todos = todos.map(t => ({ ...t, id: t._id }));
+        
+        const activeTodos = todos.filter(t => !t.deletedAt && !t.completed);
+        const history = todos.filter(t => !t.deletedAt && t.completed);
+        const bin = todos.filter(t => t.deletedAt);
+        
+        setData({ todos: activeTodos, history, bin });
+      }
+    } catch (err) {
+      console.error("Error fetching todos", err);
     }
-  }, [data.lastResetDate]);
+  };
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data]);
+    fetchTodos();
+  }, [token]);
 
-  const addTodo = (text, category, reminderTime = null) => {
-    const newTodo = {
-      id: uuidv4(),
-      text,
-      category, 
-      completed: false,
-      createdAt: new Date().toISOString(),
-      deletedAt: null,
-      reminderTime: reminderTime,
-      notified: false
-    };
-    setData((prev) => ({
-      ...prev,
-      todos: [newTodo, ...prev.todos]
-    }));
-  };
-
-  const toggleTodo = (id) => {
-    setData((prev) => ({
-      ...prev,
-      todos: prev.todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      ),
-    }));
-  };
-
-  const editTodo = (id, newText, newReminderTime = undefined) => {
-    setData((prev) => ({
-      ...prev,
-      todos: prev.todos.map((todo) => {
-        if (todo.id === id) {
-          const updated = { ...todo, text: newText };
-          if (newReminderTime !== undefined) {
-            updated.reminderTime = newReminderTime;
-            updated.notified = false;
-          }
-          return updated;
-        }
-        return todo;
-      }),
-    }));
-  };
-
-  const markNotified = (id) => {
-    setData((prev) => ({
-      ...prev,
-      todos: prev.todos.map(todo =>
-        todo.id === id ? { ...todo, notified: true } : todo
-      ),
-    }));
-  };
-
-  const deleteTodo = (id) => {
-    setData((prev) => {
-      const todoToDelete = prev.todos.find((t) => t.id === id);
-      if (!todoToDelete) return prev;
-
-      const newBin = [{ ...todoToDelete, deletedAt: new Date().toISOString() }, ...prev.bin];
-      const newTodos = prev.todos.filter((t) => t.id !== id);
-
-      return {
-        ...prev,
-        todos: newTodos,
-        bin: newBin,
-      };
-    });
-  };
-
-  const restoreFromBin = (id) => {
-    setData((prev) => {
-      const todoToRestore = prev.bin.find((t) => t.id === id);
-      if (!todoToRestore) return prev;
-
-      const newTodos = [{ ...todoToRestore, deletedAt: null }, ...prev.todos];
-      const newBin = prev.bin.filter((t) => t.id !== id);
-
-      return {
-        ...prev,
-        todos: newTodos,
-        bin: newBin,
-      };
-    });
-  };
-
-  const permanentlyDelete = (id) => {
-    setData((prev) => ({
-      ...prev,
-      bin: prev.bin.filter((t) => t.id !== id),
-    }));
-  };
-
-  const clearBin = () => {
-    setData((prev) => ({
-      ...prev,
-      bin: [],
-    }));
-  };
-
-  const archiveCompleted = () => {
-    setData((prev) => {
-      const completedNonDaily = prev.todos.filter(t => t.completed && t.category !== 'daily');
-      const remainingTodos = prev.todos.filter(t => !(t.completed && t.category !== 'daily'));
-      
-      return {
-        ...prev,
-        todos: remainingTodos,
-        history: [...completedNonDaily, ...prev.history]
-      };
-    });
-  };
-
-  const reorderTodos = (newOrder, category) => {
-    setData((prev) => {
-      if (category === 'all') {
-        return { ...prev, todos: newOrder };
+  const addTodo = async (text, category = 'daily', reminderTime = null) => {
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ text, category, reminderTime })
+      });
+      if (res.ok) {
+        fetchTodos();
       }
-      const otherTodos = prev.todos.filter(t => t.category !== category);
-      return { ...prev, todos: [...newOrder, ...otherTodos] };
-    });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  return {
-    data,
-    addTodo,
-    toggleTodo,
-    editTodo,
-    markNotified,
-    deleteTodo,
+  const toggleTodo = async (id, isHistory = false) => {
+    let completed = !isHistory;
+    
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ completed })
+      });
+      if (res.ok) fetchTodos();
+    } catch (err) {}
+  };
+
+  const editTodo = async (id, text, reminderTime) => {
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ text, reminderTime, notified: false })
+      });
+      if (res.ok) fetchTodos();
+    } catch (err) {}
+  };
+
+  const markNotified = async (id) => {
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ notified: true })
+      });
+      if (res.ok) fetchTodos();
+    } catch (err) {}
+  };
+
+  const deleteTodo = async (id, fromBin = false) => {
+    try {
+      if (fromBin) {
+        const res = await fetch(`/api/todos/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) fetchTodos();
+      } else {
+        const res = await fetch(`/api/todos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ deletedAt: new Date().toISOString() })
+        });
+        if (res.ok) fetchTodos();
+      }
+    } catch (err) {}
+  };
+
+  const restoreFromBin = async (id) => {
+    try {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ deletedAt: null })
+      });
+      if (res.ok) fetchTodos();
+    } catch (err) {}
+  };
+
+  const permanentlyDelete = async (id) => {
+    await deleteTodo(id, true);
+  };
+
+  const clearBin = async () => {
+    for (const todo of data.bin) {
+      await deleteTodo(todo._id, true);
+    }
+  };
+
+  const archiveCompleted = async () => {
+    // History is already completed items. "Archive" here just means they're stored.
+    // In our cloud DB, they are naturally archived. No action needed unless we want to hide them from history.
+  };
+
+  const reorderTodos = async (newOrderedTodos, category) => {
+    const newTodos = data.todos.filter(t => t.category !== category).concat(newOrderedTodos);
+    setData({ ...data, todos: newTodos });
+    
+    const orderedIds = newOrderedTodos.map(t => t._id);
+    try {
+      await fetch(`/api/todos/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ orderedIds })
+      });
+    } catch (err) {}
+  };
+
+  return { 
+    data, 
+    addTodo, 
+    toggleTodo, 
+    editTodo, 
+    deleteTodo, 
     restoreFromBin,
     permanentlyDelete,
     clearBin,
     archiveCompleted,
-    reorderTodos,
-    setData
+    reorderTodos, 
+    markNotified 
   };
 };
