@@ -9,62 +9,104 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const requestOTP = async (identifier) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/request-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to request OTP');
-      return true;
-    } catch (err) {
-      setError(err.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
+  const handleAuthResponse = async (res) => {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Authentication failed');
+    
+    const userData = { 
+      id: data.user.id, 
+      name: data.user.name, 
+      email: data.user.email, 
+      phone: data.user.phone,
+      dob: data.user.dob,
+      dp: data.user.dp,
+      role: data.user.role, 
+      customCategories: data.user.customCategories || [],
+      emailNotifications: data.user.emailNotifications !== false,
+      pushNotifications: data.user.pushNotifications !== false
+    };
+    
+    localStorage.setItem('todo_user', JSON.stringify(userData));
+    localStorage.setItem('todo_token', data.token);
+    setToken(data.token);
+    setUser(userData);
+    return true;
   };
 
-  const verifyOTP = async (identifier, code, name = '') => {
-    setLoading(true);
-    setError(null);
+  const login = async (email, password) => {
+    setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, code, name }),
+      const res = await fetch('/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      return await handleAuthResponse(res);
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
+  };
+
+  const register = async (name, email, password) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      return await handleAuthResponse(res);
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
+  };
+
+  const requestMagicLink = async (email) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/request-magic-link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, baseUrl: window.location.origin })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Verification failed');
-      
-      const userData = { 
-        id: data.user.id, 
-        name: data.user.name, 
-        email: data.user.email, 
-        phone: data.user.phone,
-        dob: data.user.dob,
-        dp: data.user.dp,
-        role: data.user.role, 
-        customCategories: data.user.customCategories || [],
-        emailNotifications: data.user.emailNotifications !== false,
-        pushNotifications: data.user.pushNotifications !== false
-      };
-      
-      localStorage.setItem('todo_user', JSON.stringify(userData));
-      localStorage.setItem('todo_token', data.token);
-      setToken(data.token);
-      setUser(userData);
+      if (!res.ok) throw new Error(data.message);
       return true;
-    } catch (err) {
-      setError(err.message);
-      return false;
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
+  };
+
+  const verifyMagicLink = async (tokenParam) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/verify-magic-link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenParam })
+      });
+      return await handleAuthResponse(res);
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
+  };
+
+  const forgotPassword = async (identifier) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return true;
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
+  };
+
+  const resetPassword = async (identifier, code, newPassword) => {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, code, newPassword })
+      });
+      return await handleAuthResponse(res);
+    } catch (err) { setError(err.message); return false; }
+    finally { setLoading(false); }
   };
 
   const addCustomCategory = async (category) => {
@@ -151,5 +193,5 @@ export const useAuth = () => {
     setUser(null);
   };
 
-  return { user, token, loading, error, requestOTP, verifyOTP, logout, addCustomCategory, updateSettings, updateProfile };
+  return { user, token, loading, error, login, register, requestMagicLink, verifyMagicLink, forgotPassword, resetPassword, logout, addCustomCategory, updateSettings, updateProfile };
 };

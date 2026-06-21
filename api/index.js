@@ -5,35 +5,137 @@ import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail } from '
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import OTP from '../server/models/OTP.js';
+import MagicLink from '../server/models/MagicLink.js';
 import Todo from '../server/models/Todo.js';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import auth from '../server/middleware/auth.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const generateUserPayload = (user) => ({
+  id: user._id, 
+  name: user.name, 
+  email: user.email, 
+  phone: user.phone,
+  dob: user.dob,
+  dp: user.dp,
+  role: user.role, 
+  customCategories: user.customCategories, 
+  emailNotifications: user.emailNotifications, 
+  pushNotifications: user.pushNotifications 
+});
+
 // Auth Routes
-app.post('/api/auth/request-otp', async (req, res) => {
+// Register (Email + Password)
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    await connectDB();
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ message: 'All fields are required' });
+
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ message: 'User already exists' });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user = new User({ name, email, password: hashedPassword });
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: generateUserPayload(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Login (Email + Password)
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    await connectDB();
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
+
+    const user = await User.findOne({ email });
+    if (!user || !user.password) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: generateUserPayload(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Request Magic Link
+app.post('/api/auth/request-magic-link', async (req, res) => {
+  try {
+    await connectDB();
+    const { email, baseUrl } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({ name: email.split('@')[0], email, password: Math.random().toString(36).slice(-8) });
+      await user.save();
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    await MagicLink.deleteMany({ email });
+    await new MagicLink({ email, token }).save();
+
+    const { sendMagicLinkEmail } = await import('../server/utils/mailer.js');
+    await sendMagicLinkEmail(email, token, baseUrl || 'http://localhost:5173');
+
+    res.json({ message: 'Magic link sent' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify Magic Link
+app.post('/api/auth/verify-magic-link', async (req, res) => {
+  try {
+    await connectDB();
+    const { token } = req.body;
+    
+    const magicLink = await MagicLink.findOne({ token });
+    if (!magicLink) return res.status(400).json({ message: 'Invalid or expired magic link' });
+
+    const user = await User.findOne({ email: magicLink.email });
+    await MagicLink.deleteOne({ _id: magicLink._id });
+
+    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token: jwtToken, user: generateUserPayload(user) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Forgot Password (Request OTP)
+app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     await connectDB();
     const { identifier } = req.body;
     if (!identifier) return res.status(400).json({ message: 'Email or phone is required.' });
 
-    // Generate 6 digit code
+    const isEmail = identifier.includes('@');
+    const query = isEmail ? { email: identifier } : { phone: identifier };
+    const user = await User.findOne(query);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Delete any existing OTPs for this identifier
     await OTP.deleteMany({ identifier });
+    await new OTP({ identifier, code: otpCode }).save();
 
-    // Save new OTP
-    const otp = new OTP({ identifier, code: otpCode });
-    await otp.save();
-
-    // Send email or SMS
-    if (identifier.includes('@')) {
+    if (isEmail) {
       await sendOTPEmail(identifier, otpCode);
     } else {
-      // Mock SMS Send
       console.log(`\n========================================`);
       console.log(`📱 MOCK SMS SENT TO: ${identifier}`);
       console.log(`🔐 YOUR OTP CODE IS: ${otpCode}`);
@@ -46,56 +148,28 @@ app.post('/api/auth/request-otp', async (req, res) => {
   }
 });
 
-app.post('/api/auth/verify-otp', async (req, res) => {
+// Reset Password (Verify OTP + Set Password)
+app.post('/api/auth/reset-password', async (req, res) => {
   try {
     await connectDB();
-    const { identifier, code, name } = req.body; // name is optional, used if creating new user
-
-    if (!identifier || !code) return res.status(400).json({ message: 'Email/Phone and code are required.' });
+    const { identifier, code, newPassword } = req.body;
+    if (!identifier || !code || !newPassword) return res.status(400).json({ message: 'All fields are required.' });
 
     const validOtp = await OTP.findOne({ identifier, code });
-    if (!validOtp) {
-      return res.status(400).json({ message: 'Invalid or expired code.' });
-    }
+    if (!validOtp) return res.status(400).json({ message: 'Invalid or expired code.' });
 
-    // Delete the used OTP
     await OTP.deleteOne({ _id: validOtp._id });
 
-    // Check if user exists
     const isEmail = identifier.includes('@');
     const query = isEmail ? { email: identifier } : { phone: identifier };
-    
-    let user = await User.findOne(query);
-    if (!user) {
-      // Create new user if they don't exist
-      const newUserObj = {
-        name: name || (isEmail ? identifier.split('@')[0] : 'User'),
-        password: Math.random().toString(36).slice(-8)
-      };
-      if (isEmail) newUserObj.email = identifier;
-      else newUserObj.phone = identifier;
+    const user = await User.findOne(query);
 
-      user = new User(newUserObj);
-      await user.save();
-    }
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({
-      token,
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
-        phone: user.phone,
-        dob: user.dob,
-        dp: user.dp,
-        role: user.role, 
-        customCategories: user.customCategories, 
-        emailNotifications: user.emailNotifications, 
-        pushNotifications: user.pushNotifications 
-      }
-    });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: generateUserPayload(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -148,16 +222,7 @@ app.put('/api/user/profile', auth, async (req, res) => {
     await user.save();
 
     res.json({
-      id: user._id, 
-      name: user.name, 
-      email: user.email, 
-      phone: user.phone,
-      dob: user.dob,
-      dp: user.dp,
-      role: user.role, 
-      customCategories: user.customCategories, 
-      emailNotifications: user.emailNotifications, 
-      pushNotifications: user.pushNotifications 
+      ...generateUserPayload(user)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

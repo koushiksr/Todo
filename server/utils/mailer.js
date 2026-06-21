@@ -122,3 +122,38 @@ export const sendOTPEmail = async (email, otp) => {
     return false;
   }
 };
+
+export const sendMagicLinkEmail = async (email, token, baseUrl) => {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.log('Skipping email send: GMAIL credentials not configured. Link is:', `${baseUrl}/magic-link/${token}`);
+    return false;
+  }
+
+  const magicUrl = `${baseUrl}/magic-link/${token}`;
+
+  const mailOptions = {
+    from: `"TodoPro Auth" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: `Sign in to TodoPro`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: #0f172a; text-align: center;">Welcome to TodoPro</h2>
+        <p style="text-align: center;">Click the button below to securely sign into your account.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${magicUrl}" style="background: #3b82f6; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+            Sign in to TodoPro
+          </a>
+        </div>
+        <p style="text-align: center; font-size: 14px; color: #666;">This link expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error(`Error sending Magic Link email to ${email}:`, error);
+    return false;
+  }
+};
