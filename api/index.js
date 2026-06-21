@@ -23,10 +23,14 @@ const generateUserPayload = (user) => ({
   dob: user.dob,
   dp: user.dp,
   role: user.role, 
-  customCategories: user.customCategories, 
-  emailNotifications: user.emailNotifications, 
-  pushNotifications: user.pushNotifications 
+  customCategories: user.customCategories || [],
+  emailNotifications: user.emailNotifications !== false,
+  pushNotifications: user.pushNotifications !== false
 });
+
+if (!process.env.JWT_SECRET) {
+  console.warn("WARNING: JWT_SECRET is not defined in environment variables! Logins will fail.");
+}
 
 // Auth Routes
 // Register (Email + Password)

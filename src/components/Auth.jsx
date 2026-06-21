@@ -60,7 +60,7 @@ export const Auth = ({ useAuthHook }) => {
         body: JSON.stringify({ email: identifier, baseUrl: window.location.origin })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to request magic link');
       if (data.mockLink) setMockLink(data.mockLink);
       setView('MAGIC_SENT');
     } catch (err) { setLocalError(err.message); }
@@ -77,7 +77,7 @@ export const Auth = ({ useAuthHook }) => {
         body: JSON.stringify({ identifier })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to request password reset');
       if (data.mockOtp) setMockOtp(data.mockOtp);
       setView('RESET');
     } catch (err) { setLocalError(err.message); }

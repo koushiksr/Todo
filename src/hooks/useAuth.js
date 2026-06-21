@@ -11,7 +11,7 @@ export const useAuth = () => {
 
   const handleAuthResponse = async (res) => {
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Authentication failed');
+    if (!res.ok) throw new Error(data.message || data.error || 'Authentication failed');
     
     const userData = { 
       id: data.user.id, 
