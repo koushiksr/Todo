@@ -36,10 +36,33 @@ export const AdminDashboard = ({ token }) => {
     setSortConfig({ key, direction });
   };
 
-  const getSortedUsers = () => {
-    let sortableUsers = [...users];
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all'); // all, admin, user
+
+  const getProcessedUsers = () => {
+    let processed = [...users];
+
+    // Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      processed = processed.filter(u => 
+        u.name.toLowerCase().includes(q) || 
+        u.email.toLowerCase().includes(q)
+      );
+    }
+
+    // Filter
+    if (roleFilter !== 'all') {
+      if (roleFilter === 'admin') {
+        processed = processed.filter(u => u.role === 'admin' || u.role === 'owner');
+      } else {
+        processed = processed.filter(u => u.role !== 'admin' && u.role !== 'owner');
+      }
+    }
+
+    // Sort
     if (sortConfig.key !== null) {
-      sortableUsers.sort((a, b) => {
+      processed.sort((a, b) => {
         let aValue, bValue;
         
         if (sortConfig.key === 'name') {
@@ -61,7 +84,7 @@ export const AdminDashboard = ({ token }) => {
         return 0;
       });
     }
-    return sortableUsers;
+    return processed;
   };
 
   // Collect all unique categories across all users to build dynamic table headers
@@ -93,14 +116,37 @@ export const AdminDashboard = ({ token }) => {
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Admin Dashboard</h1>
-        <span className="tag tag-count" style={{ background: 'var(--primary-color)', color: '#fff' }}>
-          {users.length} Users Total
-        </span>
+      <div className="page-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="page-title">Admin Dashboard</h1>
+          <span className="tag tag-count" style={{ background: 'var(--primary-color)', color: '#fff' }}>
+            {users.length} Users Total
+          </span>
+        </div>
+
+        <div className="control-bar" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', background: 'var(--surface-color)', padding: '0.75rem', borderRadius: '12px' }}>
+          <input 
+            type="text" 
+            placeholder="Search by name or email..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field"
+            style={{ flex: '1 1 200px', padding: '0.4rem 0.75rem', fontSize: '0.9rem' }}
+          />
+          <select 
+            value={roleFilter} 
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="input-field"
+            style={{ flex: '0 1 auto', padding: '0.4rem 0.75rem', fontSize: '0.9rem', width: 'auto' }}
+          >
+            <option value="all">All Roles</option>
+            <option value="admin">Admins Only</option>
+            <option value="user">Users Only</option>
+          </select>
+        </div>
       </div>
 
-      <div style={{ padding: '0 1rem', overflowX: 'auto' }}>
+      <div style={{ padding: '0 1rem', overflowX: 'auto', paddingBottom: '2rem' }}>
         <table style={{ 
           width: '100%', 
           borderCollapse: 'collapse', 
@@ -127,13 +173,13 @@ export const AdminDashboard = ({ token }) => {
             </tr>
           </thead>
           <tbody>
-            {getSortedUsers().map((u) => (
+            {getProcessedUsers().map((u) => (
               <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td style={{ padding: '1rem', color: 'var(--text-color)' }}>
                   {u.name}
-                  {u.role === 'admin' && (
+                  {(u.role === 'admin' || u.role === 'owner') && (
                     <span className="tag" style={{ marginLeft: '0.5rem', background: 'var(--primary-color)', color: '#fff', fontSize: '0.6rem' }}>
-                      ADMIN
+                      {u.role.toUpperCase()}
                     </span>
                   )}
                 </td>
@@ -152,6 +198,13 @@ export const AdminDashboard = ({ token }) => {
                 ))}
               </tr>
             ))}
+            {getProcessedUsers().length === 0 && (
+              <tr>
+                <td colSpan={3 + categoryHeaders.length} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  No users match your search and filters.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
