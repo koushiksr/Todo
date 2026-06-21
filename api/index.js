@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail } from '../server/utils/mailer.js';
+import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail, sendMagicLinkEmail } from '../server/utils/mailer.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import OTP from '../server/models/OTP.js';
@@ -90,7 +90,7 @@ app.post('/api/auth/request-magic-link', async (req, res) => {
     await MagicLink.deleteMany({ email });
     await new MagicLink({ email, token }).save();
 
-    const { sendMagicLinkEmail } = await import('../server/utils/mailer.js');
+
     const sent = await sendMagicLinkEmail(email, token, baseUrl || 'http://localhost:5173');
 
     if (!sent) {
