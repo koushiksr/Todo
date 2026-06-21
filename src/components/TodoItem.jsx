@@ -143,13 +143,19 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
             </div>
             
             {isEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div 
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    saveEdit();
+                  }
+                }}
+              >
                 <input
                   ref={inputRef}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  onBlur={saveEdit}
                   className="input-field"
                   style={{ padding: '0.5rem', fontSize: '1rem', boxShadow: 'none' }}
                 />
@@ -159,7 +165,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
                     type="time" 
                     value={editTime}
                     onChange={(e) => setEditTime(e.target.value)}
-                    onBlur={saveEdit}
+                    onKeyDown={handleKeyDown}
                     className="input-field"
                     style={{ padding: '0.25rem 0.5rem', fontSize: '0.9rem', width: 'auto', boxShadow: 'none' }}
                   />
