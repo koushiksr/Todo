@@ -22,18 +22,40 @@ export const useNotifications = (todos, markNotified) => {
           const [hours, minutes] = todo.reminderTime.split(':').map(Number);
           
           if (currentHours === hours && currentMinutes === minutes) {
-            // Trigger Notification
-            new Notification('TodoPro Reminder', {
-              body: `Time to do: ${todo.text}`,
-              icon: '/vite.svg', // Default vite icon, can be customized
-              requireInteraction: true
-            });
+            // Trigger Notification using Service Worker if available (Required for Android Chrome)
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification('TodoPro Reminder', {
+                  body: `Time to do: ${todo.text}`,
+                  icon: '/favicon.svg',
+                  vibrate: [200, 100, 200, 100, 200, 100, 200],
+                  requireInteraction: true
+                });
+              }).catch(err => {
+                console.error("Service Worker notification failed", err);
+                fallbackNotification(todo.text);
+              });
+            } else {
+              fallbackNotification(todo.text);
+            }
             
             // Mark as notified
             markNotified(todo.id);
           }
         }
       });
+    };
+
+    const fallbackNotification = (text) => {
+      try {
+        new Notification('TodoPro Reminder', {
+          body: `Time to do: ${text}`,
+          icon: '/favicon.svg',
+          requireInteraction: true
+        });
+      } catch (e) {
+        console.error("Fallback notification failed", e);
+      }
     };
 
     // Check immediately and then every 30 seconds
