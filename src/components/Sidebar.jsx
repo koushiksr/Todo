@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload, Shield } from 'lucide-react';
 
-export const Sidebar = ({ currentView, onViewChange, onExport, onImport }) => {
+export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role }) => {
   const navItems = [
     { id: 'daily', label: 'Daily', icon: <Calendar size={22} /> },
     { id: 'short', label: 'Short Term', icon: <Clock size={22} /> },
@@ -12,6 +12,7 @@ export const Sidebar = ({ currentView, onViewChange, onExport, onImport }) => {
   const secondaryItems = [
     { id: 'history', label: 'History', icon: <Archive size={22} /> },
     { id: 'bin', label: 'Recycle Bin', icon: <Trash2 size={22} /> },
+    ...(role === 'admin' ? [{ id: 'admin', label: 'Admin Panel', icon: <Shield size={22} /> }] : []),
   ];
 
   const NavButton = ({ item }) => (

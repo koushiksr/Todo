@@ -32,7 +32,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({
       token,
-      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email }
+      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -62,7 +62,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -148,6 +148,40 @@ app.put('/api/todos/reorder', auth, async (req, res) => {
     }));
     await Todo.bulkWrite(updates);
     res.json({ message: 'Reordered' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Routes
+app.get('/api/admin/users', auth, async (req, res) => {
+  try {
+    await connectDB();
+    const requester = await User.findById(req.user);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+
+    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    const todos = await Todo.aggregate([
+      { $group: { _id: "$userId", count: { $sum: 1 } } }
+    ]);
+
+    const todoCounts = todos.reduce((acc, curr) => {
+      acc[curr._id.toString()] = curr.count;
+      return acc;
+    }, {});
+
+    const usersWithCounts = users.map(u => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt,
+      todoCount: todoCounts[u._id.toString()] || 0
+    }));
+
+    res.json(usersWithCounts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

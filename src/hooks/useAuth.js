@@ -9,8 +9,6 @@ export const useAuth = () => {
   useEffect(() => {
     if (token) {
       localStorage.setItem('todo_token', token);
-      // We could fetch user profile here if needed, 
-      // but we store user data in localStorage on login.
       const storedUser = localStorage.getItem('todo_user');
       if (storedUser) setUser(JSON.parse(storedUser));
     } else {
@@ -32,9 +30,10 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
       
-      localStorage.setItem('todo_user', JSON.stringify(data.user));
+      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role };
+      localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
-      setUser(data.user);
+      setUser(userData);
       return true;
     } catch (err) {
       setError(err.message);
@@ -56,9 +55,10 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       
-      localStorage.setItem('todo_user', JSON.stringify(data.user));
+      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role };
+      localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
-      setUser(data.user);
+      setUser(userData);
       return true;
     } catch (err) {
       setError(err.message);

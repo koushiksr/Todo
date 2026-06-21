@@ -6,8 +6,9 @@ import { Sidebar } from './components/Sidebar';
 import { TodoList } from './components/TodoList';
 import { TodoItem } from './components/TodoItem';
 import { Auth } from './components/Auth';
+import { AdminDashboard } from './components/AdminDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield } from 'lucide-react';
 
 function App() {
   const authHook = useAuth();
@@ -54,8 +55,6 @@ function App() {
         try {
           const imported = JSON.parse(e.target.result);
           if (imported.todos && imported.history && imported.bin) {
-            // Because we moved to MongoDB, importing purely client-side data is complex.
-            // For now, we will alert the user.
             alert("Local import is currently disabled while using Cloud Sync.");
           }
         } catch (err) {
@@ -73,6 +72,7 @@ function App() {
         onViewChange={setCurrentView} 
         onExport={exportData}
         onImport={importData}
+        role={user.role}
       />
       
       <main className="main-content">
@@ -84,7 +84,9 @@ function App() {
         </header>
 
         <div className="content-scroll">
-          {currentView === 'history' ? (
+          {currentView === 'admin' && user.role === 'admin' ? (
+            <AdminDashboard token={token} />
+          ) : currentView === 'history' ? (
             <>
               <div className="page-header">
                 <h1 className="page-title">History</h1>
@@ -189,6 +191,11 @@ function App() {
                 <button onClick={() => setShowMoreMenu(false)} className="btn-icon"><X size={24} /></button>
               </div>
               <div className="sheet-menu">
+                {user.role === 'admin' && (
+                  <button className="sheet-btn" onClick={() => { setCurrentView('admin'); setShowMoreMenu(false); }} style={{ color: 'var(--primary-color)' }}>
+                    <Shield size={20} /> Admin Panel
+                  </button>
+                )}
                 <button className="sheet-btn" onClick={() => { setCurrentView('history'); setShowMoreMenu(false); }}>
                   <Archive size={20} /> History
                 </button>
