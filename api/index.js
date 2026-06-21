@@ -32,7 +32,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({
       token,
-      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role }
+      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -62,8 +62,27 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories }
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/user/categories', auth, async (req, res) => {
+  try {
+    await connectDB();
+    const { category } = req.body;
+    if (!category || typeof category !== 'string' || category.trim().length === 0) {
+      return res.status(400).json({ message: 'Invalid category' });
+    }
+    
+    const user = await User.findById(req.user);
+    if (!user.customCategories.includes(category.trim())) {
+      user.customCategories.push(category.trim());
+      await user.save();
+    }
+    res.json(user.customCategories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -166,29 +185,23 @@ app.get('/api/admin/users', auth, async (req, res) => {
     const todos = await Todo.aggregate([
       { 
         $group: { 
-          _id: "$userId", 
-          total: { $sum: 1 },
-          daily: { $sum: { $cond: [{ $eq: ["$category", "daily"] }, 1, 0] } },
-          short: { $sum: { $cond: [{ $eq: ["$category", "short"] }, 1, 0] } },
-          long: { $sum: { $cond: [{ $eq: ["$category", "long"] }, 1, 0] } },
-          lifetime: { $sum: { $cond: [{ $eq: ["$category", "lifetime"] }, 1, 0] } }
+          _id: { userId: "$userId", category: "$category" },
+          count: { $sum: 1 }
         } 
       }
     ]);
 
     const todoCounts = todos.reduce((acc, curr) => {
-      acc[curr._id.toString()] = {
-        total: curr.total,
-        daily: curr.daily,
-        short: curr.short,
-        long: curr.long,
-        lifetime: curr.lifetime
-      };
+      const uid = curr._id.userId.toString();
+      const cat = curr._id.category || 'unassigned';
+      if (!acc[uid]) acc[uid] = { total: 0 };
+      acc[uid][cat] = curr.count;
+      acc[uid].total += curr.count;
       return acc;
     }, {});
 
     const usersWithCounts = users.map(u => {
-      const counts = todoCounts[u._id.toString()] || { total: 0, daily: 0, short: 0, long: 0, lifetime: 0 };
+      const counts = todoCounts[u._id.toString()] || { total: 0 };
       return {
         id: u._id,
         name: u.name,

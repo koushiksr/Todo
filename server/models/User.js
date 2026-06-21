@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, default: 'User' },
-  role: { type: String, default: 'user' }
+  role: { type: String, default: 'user' },
+  customCategories: [{ type: String }]
 }, { timestamps: true });
 
 userSchema.pre('save', async function() {

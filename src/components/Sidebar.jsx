@@ -1,12 +1,18 @@
-import React from 'react';
-import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload, Shield, Tag, Plus } from 'lucide-react';
 
-export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role }) => {
+export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role, customCategories = [], onAddCustomCategory }) => {
+  const [newCatName, setNewCatName] = useState('');
+  const [isAddingCat, setIsAddingCat] = useState(false);
+
   const navItems = [
     { id: 'daily', label: 'Daily', icon: <Calendar size={22} /> },
     { id: 'short', label: 'Short Term', icon: <Clock size={22} /> },
     { id: 'long', label: 'Long Term', icon: <Target size={22} /> },
     { id: 'lifetime', label: 'Lifetime', icon: <Repeat size={20} /> },
+    ...customCategories.map(cat => ({
+      id: cat, label: cat, icon: <Tag size={20} />
+    }))
   ];
 
   const secondaryItems = [
@@ -27,6 +33,15 @@ export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role })
     </button>
   );
 
+  const handleAddCategory = (e) => {
+    e.preventDefault();
+    if (newCatName.trim()) {
+      onAddCustomCategory(newCatName.trim());
+      setNewCatName('');
+      setIsAddingCat(false);
+    }
+  };
+
   return (
     <div className="sidebar">
       <div>
@@ -38,6 +53,30 @@ export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role })
         <div style={{ marginBottom: '2rem' }}>
           <div className="sidebar-section-title">Categories</div>
           {navItems.map(item => <NavButton key={item.id} item={item} />)}
+          
+          {isAddingCat ? (
+            <form onSubmit={handleAddCategory} style={{ padding: '0 1rem', marginTop: '0.5rem' }}>
+              <input
+                type="text"
+                autoFocus
+                placeholder="Category name..."
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onBlur={() => setIsAddingCat(false)}
+                className="input-field"
+                style={{ background: 'var(--bg-color)', fontSize: '0.9rem', padding: '0.6rem 1rem' }}
+              />
+            </form>
+          ) : (
+            <button
+              onClick={() => setIsAddingCat(true)}
+              className="nav-item"
+              style={{ opacity: 0.7 }}
+            >
+              <div className="nav-icon"><Plus size={20} /></div>
+              <span>Add Category</span>
+            </button>
+          )}
         </div>
 
         <div>

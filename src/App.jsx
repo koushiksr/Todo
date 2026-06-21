@@ -8,7 +8,7 @@ import { TodoItem } from './components/TodoItem';
 import { Auth } from './components/Auth';
 import { AdminDashboard } from './components/AdminDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag } from 'lucide-react';
 
 function App() {
   const authHook = useAuth();
@@ -73,6 +73,8 @@ function App() {
         onExport={exportData}
         onImport={importData}
         role={user.role}
+        customCategories={user.customCategories}
+        onAddCustomCategory={authHook.addCustomCategory}
       />
       
       <main className="main-content">
@@ -196,6 +198,11 @@ function App() {
                     <Shield size={20} /> Admin Panel
                   </button>
                 )}
+                {user.customCategories && user.customCategories.map(cat => (
+                  <button key={cat} className="sheet-btn" onClick={() => { setCurrentView(cat); setShowMoreMenu(false); }}>
+                    <Tag size={20} /> {cat}
+                  </button>
+                ))}
                 <button className="sheet-btn" onClick={() => { setCurrentView('history'); setShowMoreMenu(false); }}>
                   <Archive size={20} /> History
                 </button>

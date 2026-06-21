@@ -30,7 +30,7 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
       
-      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role };
+      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, customCategories: data.user.customCategories || [] };
       localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
       setUser(userData);
@@ -55,7 +55,7 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       
-      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role };
+      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, customCategories: data.user.customCategories || [] };
       localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
       setUser(userData);
@@ -68,9 +68,30 @@ export const useAuth = () => {
     }
   };
 
+  const addCustomCategory = async (category) => {
+    try {
+      const res = await fetch('/api/user/categories', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ category })
+      });
+      if (res.ok) {
+        const newCategories = await res.json();
+        const updatedUser = { ...user, customCategories: newCategories };
+        setUser(updatedUser);
+        localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.error('Failed to add category', err);
+    }
+  };
+
   const logout = () => {
     setToken(null);
   };
 
-  return { user, token, loading, error, login, register, logout };
+  return { user, token, loading, error, login, register, logout, addCustomCategory };
 };
