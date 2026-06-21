@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js';
+import { useState } from 'react';
 
 export const useAuth = () => {
   const [user, setUser] = useState(() => {
@@ -10,38 +9,17 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const generateE2EKey = (email, password) => {
-    return CryptoJS.SHA256(password + email).toString();
-  };
-
-  const login = async (email, password) => {
+  const requestOTP = async (email) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login failed');
-      
-      const userData = { 
-        id: data.user.id, 
-        name: data.user.name, 
-        email: data.user.email, 
-        role: data.user.role, 
-        customCategories: data.user.customCategories || [],
-        emailNotifications: data.user.emailNotifications !== false,
-        pushNotifications: data.user.pushNotifications !== false
-      };
-      
-      const e2eKey = generateE2EKey(email, password);
-      localStorage.setItem('todo_e2e_key', e2eKey);
-      localStorage.setItem('todo_user', JSON.stringify(userData));
-      localStorage.setItem('todo_token', data.token);
-      setToken(data.token);
-      setUser(userData);
+      if (!res.ok) throw new Error(data.message || 'Failed to request OTP');
       return true;
     } catch (err) {
       setError(err.message);
@@ -51,17 +29,17 @@ export const useAuth = () => {
     }
   };
 
-  const register = async (name, email, password) => {
+  const verifyOTP = async (email, code, name = '') => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ email, code, name }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Registration failed');
+      if (!res.ok) throw new Error(data.message || 'Verification failed');
       
       const userData = { 
         id: data.user.id, 
@@ -73,8 +51,6 @@ export const useAuth = () => {
         pushNotifications: data.user.pushNotifications !== false
       };
       
-      const e2eKey = generateE2EKey(email, password);
-      localStorage.setItem('todo_e2e_key', e2eKey);
       localStorage.setItem('todo_user', JSON.stringify(userData));
       localStorage.setItem('todo_token', data.token);
       setToken(data.token);
@@ -140,10 +116,10 @@ export const useAuth = () => {
   const logout = () => {
     localStorage.removeItem('todo_token');
     localStorage.removeItem('todo_user');
-    localStorage.removeItem('todo_e2e_key');
+    localStorage.removeItem('todo_e2e_key'); // clear legacy key if exists
     setToken(null);
     setUser(null);
   };
 
-  return { user, token, loading, error, login, register, logout, addCustomCategory, updateSettings };
+  return { user, token, loading, error, requestOTP, verifyOTP, logout, addCustomCategory, updateSettings };
 };

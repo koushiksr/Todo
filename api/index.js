@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { sendDailyReminderEmail, sendInstantReminderEmail } from '../server/utils/mailer.js';
+import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail } from '../server/utils/mailer.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
+import OTP from '../server/models/OTP.js';
 import Todo from '../server/models/Todo.js';
 import auth from '../server/middleware/auth.js';
 
@@ -12,58 +13,71 @@ app.use(cors());
 app.use(express.json());
 
 // Auth Routes
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/request-otp', async (req, res) => {
   try {
     await connectDB();
-    const { email, password, name } = req.body;
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Not all fields have been entered.' });
-    }
+    // Generate 6 digit code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'An account with this email already exists.' });
-    }
+    // Delete any existing OTPs for this email
+    await OTP.deleteMany({ email });
 
-    const newUser = new User({ email, password, name });
-    const savedUser = await newUser.save();
+    // Save new OTP
+    const otp = new OTP({ email, code: otpCode });
+    await otp.save();
 
-    const token = jwt.sign({ id: savedUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    
-    res.json({
-      token,
-      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories, emailNotifications: savedUser.emailNotifications, pushNotifications: savedUser.pushNotifications }
-    });
+    // Send email
+    await sendOTPEmail(email, otpCode);
+
+    res.json({ message: 'OTP sent successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     await connectDB();
-    const { email, password } = req.body;
+    const { email, code, name } = req.body; // name is optional, used if creating new user
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Not all fields have been entered.' });
+    if (!email || !code) return res.status(400).json({ message: 'Email and code are required.' });
+
+    const validOtp = await OTP.findOne({ email, code });
+    if (!validOtp) {
+      return res.status(400).json({ message: 'Invalid or expired code.' });
     }
 
-    const user = await User.findOne({ email });
+    // Delete the used OTP
+    await OTP.deleteOne({ _id: validOtp._id });
+
+    // Check if user exists
+    let user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials.' });
-    }
-
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials.' });
+      // Create new user if they don't exist
+      user = new User({ 
+        email, 
+        name: name || email.split('@')[0], 
+        password: Math.random().toString(36).slice(-8) // Dummy password since it's required by schema but we don't use it
+      });
+      await user.save();
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories, emailNotifications: user.emailNotifications, pushNotifications: user.pushNotifications }
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role, 
+        customCategories: user.customCategories, 
+        emailNotifications: user.emailNotifications, 
+        pushNotifications: user.pushNotifications 
+      }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
