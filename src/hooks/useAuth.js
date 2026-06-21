@@ -30,7 +30,14 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
       
-      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, customCategories: data.user.customCategories || [] };
+      const userData = { 
+        id: data.user.id, 
+        name: data.user.name, 
+        email: data.user.email, 
+        role: data.user.role, 
+        customCategories: data.user.customCategories || [],
+        emailNotifications: data.user.emailNotifications !== false 
+      };
       localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
       setUser(userData);
@@ -55,7 +62,14 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       
-      const userData = { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, customCategories: data.user.customCategories || [] };
+      const userData = { 
+        id: data.user.id, 
+        name: data.user.name, 
+        email: data.user.email, 
+        role: data.user.role, 
+        customCategories: data.user.customCategories || [],
+        emailNotifications: data.user.emailNotifications !== false 
+      };
       localStorage.setItem('todo_user', JSON.stringify(userData));
       setToken(data.token);
       setUser(userData);
@@ -89,9 +103,33 @@ export const useAuth = () => {
     }
   };
 
+  const updateSettings = async (settings) => {
+    try {
+      const res = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updatedUser = { ...user, emailNotifications: data.emailNotifications };
+        setUser(updatedUser);
+        localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to update settings', err);
+      return false;
+    }
+  };
+
   const logout = () => {
     setToken(null);
   };
 
-  return { user, token, loading, error, login, register, logout, addCustomCategory };
+  return { user, token, loading, error, login, register, logout, addCustomCategory, updateSettings };
 };

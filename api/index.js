@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import { sendDailyReminderEmail } from '../server/utils/mailer.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import Todo from '../server/models/Todo.js';
@@ -32,7 +33,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({
       token,
-      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories }
+      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories, emailNotifications: savedUser.emailNotifications }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -62,7 +63,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories, emailNotifications: user.emailNotifications }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -84,6 +85,56 @@ app.post('/api/user/categories', auth, async (req, res) => {
     }
     res.json(user.customCategories);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/user/settings', auth, async (req, res) => {
+  try {
+    await connectDB();
+    const { emailNotifications } = req.body;
+    const user = await User.findById(req.user);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (typeof emailNotifications === 'boolean') {
+      user.emailNotifications = emailNotifications;
+      await user.save();
+    }
+    
+    res.json({ emailNotifications: user.emailNotifications });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/cron/daily-check', async (req, res) => {
+  // Optional: check Authorization header if triggered externally
+  // if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  //   return res.status(401).json({ message: 'Unauthorized' });
+  // }
+  
+  try {
+    await connectDB();
+    const users = await User.find({ emailNotifications: true });
+    
+    let emailsSent = 0;
+    for (const user of users) {
+      const missedCount = await Todo.countDocuments({
+        userId: user._id,
+        category: 'daily',
+        completed: false,
+        deletedAt: null
+      });
+
+      if (missedCount > 0) {
+        const sent = await sendDailyReminderEmail(user.email, user.name, missedCount);
+        if (sent) emailsSent++;
+      }
+    }
+    
+    res.json({ success: true, checkedUsers: users.length, emailsSent });
+  } catch (err) {
+    console.error('Cron job error:', err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload, Shield, Tag, Plus } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Trash2, Archive, Download, Upload, Shield, Tag, Plus, Settings } from 'lucide-react';
 
 export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role, customCategories = [], onAddCustomCategory }) => {
   const [newCatName, setNewCatName] = useState('');
@@ -18,6 +18,7 @@ export const Sidebar = ({ currentView, onViewChange, onExport, onImport, role, c
   const secondaryItems = [
     { id: 'history', label: 'History', icon: <Archive size={22} /> },
     { id: 'bin', label: 'Recycle Bin', icon: <Trash2 size={22} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={22} /> },
     ...(role === 'admin' ? [{ id: 'admin', label: 'Admin Panel', icon: <Shield size={22} /> }] : []),
   ];
 

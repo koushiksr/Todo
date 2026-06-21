@@ -7,12 +7,13 @@ import { TodoList } from './components/TodoList';
 import { TodoItem } from './components/TodoItem';
 import { Auth } from './components/Auth';
 import { AdminDashboard } from './components/AdminDashboard';
+import { Settings } from './components/Settings';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon } from 'lucide-react';
 
 function App() {
   const authHook = useAuth();
-  const { user, token, logout } = authHook;
+  const { user, token, logout, updateSettings } = authHook;
   
   const { 
     data, 
@@ -86,7 +87,9 @@ function App() {
         </header>
 
         <div className="content-scroll">
-          {currentView === 'admin' && user.role === 'admin' ? (
+          {currentView === 'settings' ? (
+            <Settings user={user} updateSettings={updateSettings} />
+          ) : currentView === 'admin' && user.role === 'admin' ? (
             <AdminDashboard token={token} />
           ) : currentView === 'history' ? (
             <>
@@ -208,6 +211,9 @@ function App() {
                 </button>
                 <button className="sheet-btn" onClick={() => { setCurrentView('bin'); setShowMoreMenu(false); }}>
                   <Trash2 size={20} /> Recycle Bin
+                </button>
+                <button className="sheet-btn" onClick={() => { setCurrentView('settings'); setShowMoreMenu(false); }}>
+                  <SettingsIcon size={20} /> Settings
                 </button>
                 <button className="sheet-btn" onClick={() => { logout(); setShowMoreMenu(false); }} style={{ color: 'var(--danger-color)' }}>
                   <LogOut size={20} /> Logout
