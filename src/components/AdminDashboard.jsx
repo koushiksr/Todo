@@ -97,23 +97,36 @@ export const AdminDashboard = ({ token }) => {
                 marginTop: '1rem', 
                 paddingTop: '1rem', 
                 borderTop: '1px solid var(--border-color)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
               }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Total Tasks Created
-                </span>
-                <span style={{ 
-                  fontWeight: 600, 
-                  fontSize: '1.2rem', 
-                  color: 'var(--text-color)',
-                  background: 'var(--bg-color)',
-                  padding: '0.2rem 0.8rem',
-                  borderRadius: '12px'
-                }}>
-                  {u.todoCount}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Daily</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.todoCounts.daily}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Short Term</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.todoCounts.short}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Long Term</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.todoCounts.long}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Lifetime</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.todoCounts.lifetime}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-color)', fontWeight: 600 }}>Total</span>
+                  <span style={{ 
+                    fontWeight: 600, 
+                    fontSize: '1rem', 
+                    color: 'var(--text-color)',
+                    background: 'var(--bg-color)',
+                    padding: '0.1rem 0.6rem',
+                    borderRadius: '12px'
+                  }}>
+                    {u.todoCounts.total}
+                  </span>
+                </div>
               </div>
             </motion.div>
           ))}

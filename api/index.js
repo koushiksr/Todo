@@ -164,22 +164,40 @@ app.get('/api/admin/users', auth, async (req, res) => {
 
     const users = await User.find({}, '-password').sort({ createdAt: -1 });
     const todos = await Todo.aggregate([
-      { $group: { _id: "$userId", count: { $sum: 1 } } }
+      { 
+        $group: { 
+          _id: "$userId", 
+          total: { $sum: 1 },
+          daily: { $sum: { $cond: [{ $eq: ["$category", "daily"] }, 1, 0] } },
+          short: { $sum: { $cond: [{ $eq: ["$category", "short"] }, 1, 0] } },
+          long: { $sum: { $cond: [{ $eq: ["$category", "long"] }, 1, 0] } },
+          lifetime: { $sum: { $cond: [{ $eq: ["$category", "lifetime"] }, 1, 0] } }
+        } 
+      }
     ]);
 
     const todoCounts = todos.reduce((acc, curr) => {
-      acc[curr._id.toString()] = curr.count;
+      acc[curr._id.toString()] = {
+        total: curr.total,
+        daily: curr.daily,
+        short: curr.short,
+        long: curr.long,
+        lifetime: curr.lifetime
+      };
       return acc;
     }, {});
 
-    const usersWithCounts = users.map(u => ({
-      id: u._id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      createdAt: u.createdAt,
-      todoCount: todoCounts[u._id.toString()] || 0
-    }));
+    const usersWithCounts = users.map(u => {
+      const counts = todoCounts[u._id.toString()] || { total: 0, daily: 0, short: 0, long: 0, lifetime: 0 };
+      return {
+        id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        createdAt: u.createdAt,
+        todoCounts: counts
+      };
+    });
 
     res.json(usersWithCounts);
   } catch (err) {
