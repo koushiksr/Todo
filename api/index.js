@@ -16,21 +16,29 @@ app.use(express.json());
 app.post('/api/auth/request-otp', async (req, res) => {
   try {
     await connectDB();
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required.' });
+    const { identifier } = req.body;
+    if (!identifier) return res.status(400).json({ message: 'Email or phone is required.' });
 
     // Generate 6 digit code
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Delete any existing OTPs for this email
-    await OTP.deleteMany({ email });
+    // Delete any existing OTPs for this identifier
+    await OTP.deleteMany({ identifier });
 
     // Save new OTP
-    const otp = new OTP({ email, code: otpCode });
+    const otp = new OTP({ identifier, code: otpCode });
     await otp.save();
 
-    // Send email
-    await sendOTPEmail(email, otpCode);
+    // Send email or SMS
+    if (identifier.includes('@')) {
+      await sendOTPEmail(identifier, otpCode);
+    } else {
+      // Mock SMS Send
+      console.log(`\n========================================`);
+      console.log(`📱 MOCK SMS SENT TO: ${identifier}`);
+      console.log(`🔐 YOUR OTP CODE IS: ${otpCode}`);
+      console.log(`========================================\n`);
+    }
 
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
@@ -41,11 +49,11 @@ app.post('/api/auth/request-otp', async (req, res) => {
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     await connectDB();
-    const { email, code, name } = req.body; // name is optional, used if creating new user
+    const { identifier, code, name } = req.body; // name is optional, used if creating new user
 
-    if (!email || !code) return res.status(400).json({ message: 'Email and code are required.' });
+    if (!identifier || !code) return res.status(400).json({ message: 'Email/Phone and code are required.' });
 
-    const validOtp = await OTP.findOne({ email, code });
+    const validOtp = await OTP.findOne({ identifier, code });
     if (!validOtp) {
       return res.status(400).json({ message: 'Invalid or expired code.' });
     }
@@ -54,14 +62,20 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     await OTP.deleteOne({ _id: validOtp._id });
 
     // Check if user exists
-    let user = await User.findOne({ email });
+    const isEmail = identifier.includes('@');
+    const query = isEmail ? { email: identifier } : { phone: identifier };
+    
+    let user = await User.findOne(query);
     if (!user) {
       // Create new user if they don't exist
-      user = new User({ 
-        email, 
-        name: name || email.split('@')[0], 
-        password: Math.random().toString(36).slice(-8) // Dummy password since it's required by schema but we don't use it
-      });
+      const newUserObj = {
+        name: name || (isEmail ? identifier.split('@')[0] : 'User'),
+        password: Math.random().toString(36).slice(-8)
+      };
+      if (isEmail) newUserObj.email = identifier;
+      else newUserObj.phone = identifier;
+
+      user = new User(newUserObj);
       await user.save();
     }
 

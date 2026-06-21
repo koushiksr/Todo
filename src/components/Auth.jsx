@@ -4,13 +4,13 @@ import { Mail, KeyRound, ArrowLeft } from 'lucide-react';
 
 export const Auth = ({ useAuthHook }) => {
   const { requestOTP, verifyOTP, loading, error } = useAuthHook;
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState(1); // 1: Email/Phone, 2: OTP
+  const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState('');
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();
-    const success = await requestOTP(email);
+    const success = await requestOTP(identifier);
     if (success) {
       setStep(2);
     }
@@ -18,7 +18,7 @@ export const Auth = ({ useAuthHook }) => {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    await verifyOTP(email, otp);
+    await verifyOTP(identifier, otp);
   };
 
   return (
@@ -45,7 +45,7 @@ export const Auth = ({ useAuthHook }) => {
                   Welcome to TodoPro
                 </h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  Enter your email to sign in or create a new account securely without a password.
+                  Enter your email or phone number to sign in or create a new account securely.
                 </p>
               </div>
 
@@ -53,11 +53,11 @@ export const Auth = ({ useAuthHook }) => {
                 <div style={{ position: 'relative' }}>
                   <Mail size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                   <input 
-                    type="email" 
+                    type="text" 
                     className="input-field" 
-                    placeholder="Email Address" 
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Email or Phone Number" 
+                    value={identifier}
+                    onChange={e => setIdentifier(e.target.value)}
                     style={{ width: '100%', paddingLeft: '3rem', height: '3.5rem', fontSize: '1rem' }}
                     required
                   />
@@ -65,7 +65,7 @@ export const Auth = ({ useAuthHook }) => {
 
                 {error && <div style={{ color: 'var(--danger-color)', fontSize: '0.85rem', textAlign: 'center', marginTop: '0.5rem' }}>{error}</div>}
 
-                <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '1rem', height: '3.5rem', fontSize: '1.05rem' }} disabled={loading || !email}>
+                <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1rem', marginTop: '1rem', height: '3.5rem', fontSize: '1.05rem' }} disabled={loading || !identifier}>
                   {loading ? 'Sending Code...' : 'Send Login Code'}
                 </button>
               </form>
@@ -94,7 +94,7 @@ export const Auth = ({ useAuthHook }) => {
                   Enter Code
                 </h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  We sent a 6-digit code to <strong style={{ color: 'var(--text-color)' }}>{email}</strong>
+                  We sent a 6-digit code to <strong style={{ color: 'var(--text-color)' }}>{identifier}</strong>
                 </p>
               </div>
 
