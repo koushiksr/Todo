@@ -32,7 +32,8 @@ export const useAuth = () => {
         email: data.user.email, 
         role: data.user.role, 
         customCategories: data.user.customCategories || [],
-        emailNotifications: data.user.emailNotifications !== false 
+        emailNotifications: data.user.emailNotifications !== false,
+        pushNotifications: data.user.pushNotifications !== false
       };
       
       const e2eKey = generateE2EKey(email, password);
@@ -68,7 +69,8 @@ export const useAuth = () => {
         email: data.user.email, 
         role: data.user.role, 
         customCategories: data.user.customCategories || [],
-        emailNotifications: data.user.emailNotifications !== false 
+        emailNotifications: data.user.emailNotifications !== false,
+        pushNotifications: data.user.pushNotifications !== false
       };
       
       const e2eKey = generateE2EKey(email, password);
@@ -119,7 +121,11 @@ export const useAuth = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        const updatedUser = { ...user, emailNotifications: data.emailNotifications };
+        const updatedUser = { 
+          ...user, 
+          emailNotifications: data.emailNotifications,
+          pushNotifications: data.pushNotifications 
+        };
         setUser(updatedUser);
         localStorage.setItem('todo_user', JSON.stringify(updatedUser));
         return true;

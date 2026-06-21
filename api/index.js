@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { sendDailyReminderEmail } from '../server/utils/mailer.js';
+import { sendDailyReminderEmail, sendInstantReminderEmail } from '../server/utils/mailer.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import Todo from '../server/models/Todo.js';
@@ -33,7 +33,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({
       token,
-      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories, emailNotifications: savedUser.emailNotifications }
+      user: { id: savedUser._id, name: savedUser.name, email: savedUser.email, role: savedUser.role, customCategories: savedUser.customCategories, emailNotifications: savedUser.emailNotifications, pushNotifications: savedUser.pushNotifications }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,7 +63,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories, emailNotifications: user.emailNotifications }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, customCategories: user.customCategories, emailNotifications: user.emailNotifications, pushNotifications: user.pushNotifications }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -92,16 +92,35 @@ app.post('/api/user/categories', auth, async (req, res) => {
 app.put('/api/user/settings', auth, async (req, res) => {
   try {
     await connectDB();
-    const { emailNotifications } = req.body;
+    const { emailNotifications, pushNotifications } = req.body;
     const user = await User.findById(req.user);
     if (!user) return res.status(404).json({ message: 'User not found' });
     
     if (typeof emailNotifications === 'boolean') {
       user.emailNotifications = emailNotifications;
-      await user.save();
     }
+    if (typeof pushNotifications === 'boolean') {
+      user.pushNotifications = pushNotifications;
+    }
+    await user.save();
     
-    res.json({ emailNotifications: user.emailNotifications });
+    res.json({ emailNotifications: user.emailNotifications, pushNotifications: user.pushNotifications });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/user/notify-now', auth, async (req, res) => {
+  try {
+    await connectDB();
+    const { taskText } = req.body;
+    const user = await User.findById(req.user);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (user.emailNotifications) {
+      await sendInstantReminderEmail(user.email, user.name, taskText);
+    }
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

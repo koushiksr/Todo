@@ -28,9 +28,9 @@ export const Settings = ({ user, updateSettings }) => {
               <Bell size={24} color="var(--primary-color)" />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>Daily Reminder Emails</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>Push Notifications</h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                Receive an email if you forget to complete your daily tasks.
+                Receive mobile or desktop push alerts for tasks due now.
               </p>
             </div>
           </div>
@@ -38,7 +38,30 @@ export const Settings = ({ user, updateSettings }) => {
           <label className="toggle-switch">
             <input 
               type="checkbox" 
-              checked={user.emailNotifications} 
+              checked={user.pushNotifications !== false} 
+              onChange={() => updateSettings({ pushNotifications: !(user.pushNotifications !== false) })}
+            />
+            <span className="slider round"></span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ background: 'var(--bg-color)', padding: '0.8rem', borderRadius: '12px' }}>
+              <Bell size={24} color="var(--primary-color)" />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-color)' }}>Email Notifications</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                Receive emails for tasks due now, and daily missed task recaps.
+              </p>
+            </div>
+          </div>
+          
+          <label className="toggle-switch">
+            <input 
+              type="checkbox" 
+              checked={user.emailNotifications !== false} 
               onChange={handleToggleEmail}
             />
             <span className="slider round"></span>

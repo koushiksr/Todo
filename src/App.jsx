@@ -29,7 +29,7 @@ function App() {
     reorderTodos
   } = useTodos(token);
 
-  useNotifications(data.todos, markNotified);
+  useNotifications(data.todos, markNotified, user, token);
 
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('todo_current_view') || 'daily';

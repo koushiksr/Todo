@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export const useNotifications = (todos, markNotified) => {
+export const useNotifications = (todos, markNotified, user, token) => {
   useEffect(() => {
     // Request permission on mount
     if ('Notification' in window && Notification.permission === 'default') {
@@ -10,8 +10,6 @@ export const useNotifications = (todos, markNotified) => {
 
   useEffect(() => {
     const checkReminders = () => {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
       const now = new Date();
       const currentHours = now.getHours();
       const currentMinutes = now.getMinutes();
@@ -22,21 +20,41 @@ export const useNotifications = (todos, markNotified) => {
           const [hours, minutes] = todo.reminderTime.split(':').map(Number);
           
           if (currentHours === hours && currentMinutes === minutes) {
-            // Trigger Notification using Service Worker if available (Required for Android Chrome)
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification('TodoPro Reminder', {
-                  body: `Time to do: ${todo.text}`,
-                  icon: '/favicon.svg',
-                  vibrate: [200, 100, 200, 100, 200, 100, 200],
-                  requireInteraction: true
+            
+            // 1. Push Notifications
+            if (user?.pushNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
+              // Trigger Notification using Service Worker if available (Required for Android Chrome)
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(registration => {
+                  if (registration) {
+                    registration.showNotification('TodoPro Reminder', {
+                      body: `Time to do: ${todo.text}`,
+                      icon: '/favicon.svg',
+                      vibrate: [200, 100, 200, 100, 200, 100, 200],
+                      requireInteraction: true
+                    });
+                  } else {
+                    fallbackNotification(todo.text);
+                  }
+                }).catch(err => {
+                  console.error("Service Worker notification failed", err);
+                  fallbackNotification(todo.text);
                 });
-              }).catch(err => {
-                console.error("Service Worker notification failed", err);
+              } else {
                 fallbackNotification(todo.text);
-              });
-            } else {
-              fallbackNotification(todo.text);
+              }
+            }
+
+            // 2. Instant Email Notification
+            if (user?.emailNotifications !== false && token) {
+              fetch('/api/user/notify-now', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ taskText: todo.text })
+              }).catch(err => console.error("Failed to trigger instant email:", err));
             }
             
             // Mark as notified
@@ -63,5 +81,5 @@ export const useNotifications = (todos, markNotified) => {
     const intervalId = setInterval(checkReminders, 30000);
 
     return () => clearInterval(intervalId);
-  }, [todos, markNotified]);
+  }, [todos, markNotified, user, token]);
 };
