@@ -9,7 +9,7 @@ import { Auth } from './components/Auth';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Settings } from './components/Settings';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon, List, Plus } from 'lucide-react';
 
 function App() {
   const authHook = useAuth();
@@ -35,6 +35,7 @@ function App() {
     return localStorage.getItem('todo_current_view') || 'daily';
   }); 
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [newMobileCategory, setNewMobileCategory] = useState('');
 
   useEffect(() => {
     localStorage.setItem('todo_current_view', currentView);
@@ -202,6 +203,9 @@ function App() {
                 <button onClick={() => setShowMoreMenu(false)} className="btn-icon"><X size={24} /></button>
               </div>
               <div className="sheet-menu">
+                <button className="sheet-btn" onClick={() => { setCurrentView('all'); setShowMoreMenu(false); }}>
+                  <List size={20} /> All Tasks
+                </button>
                 {user.role === 'admin' && (
                   <button className="sheet-btn" onClick={() => { setCurrentView('admin'); setShowMoreMenu(false); }} style={{ color: 'var(--primary-color)' }}>
                     <Shield size={20} /> Admin Panel
@@ -212,6 +216,27 @@ function App() {
                     <Tag size={20} /> {cat}
                   </button>
                 ))}
+                <div style={{ padding: '0.5rem 1rem', margin: '0.5rem 0', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newMobileCategory.trim()) {
+                      authHook.addCustomCategory(newMobileCategory.trim());
+                      setNewMobileCategory('');
+                    }
+                  }} style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input 
+                      type="text" 
+                      placeholder="New Category..." 
+                      value={newMobileCategory}
+                      onChange={(e) => setNewMobileCategory(e.target.value)}
+                      className="input-field"
+                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', flex: 1, boxShadow: 'none', background: 'var(--bg-color)' }}
+                    />
+                    <button type="submit" className="btn-primary" style={{ padding: '0.4rem 0.75rem', borderRadius: '8px' }}>
+                      <Plus size={18} />
+                    </button>
+                  </form>
+                </div>
                 <button className="sheet-btn" onClick={() => { setCurrentView('history'); setShowMoreMenu(false); }}>
                   <Archive size={20} /> History
                 </button>
