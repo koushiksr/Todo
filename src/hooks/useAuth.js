@@ -37,8 +37,8 @@ export const useAuth = () => {
       
       const e2eKey = generateE2EKey(email, password);
       localStorage.setItem('todo_e2e_key', e2eKey);
-      
       localStorage.setItem('todo_user', JSON.stringify(userData));
+      localStorage.setItem('todo_token', data.token);
       setToken(data.token);
       setUser(userData);
       return true;
@@ -73,8 +73,8 @@ export const useAuth = () => {
       
       const e2eKey = generateE2EKey(email, password);
       localStorage.setItem('todo_e2e_key', e2eKey);
-      
       localStorage.setItem('todo_user', JSON.stringify(userData));
+      localStorage.setItem('todo_token', data.token);
       setToken(data.token);
       setUser(userData);
       return true;
