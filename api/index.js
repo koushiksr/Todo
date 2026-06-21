@@ -90,7 +90,12 @@ app.post('/api/auth/request-magic-link', async (req, res) => {
     await new MagicLink({ email, token }).save();
 
     const { sendMagicLinkEmail } = await import('../server/utils/mailer.js');
-    await sendMagicLinkEmail(email, token, baseUrl || 'http://localhost:5173');
+    const sent = await sendMagicLinkEmail(email, token, baseUrl || 'http://localhost:5173');
+
+    if (!sent) {
+      // Mock mode: return the link to the frontend if email sending fails or is unconfigured
+      return res.json({ message: 'Magic link generated', mockLink: `${baseUrl || 'http://localhost:5173'}/magic-link/${token}` });
+    }
 
     res.json({ message: 'Magic link sent' });
   } catch (err) {
@@ -134,12 +139,16 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     await new OTP({ identifier, code: otpCode }).save();
 
     if (isEmail) {
-      await sendOTPEmail(identifier, otpCode);
+      const sent = await sendOTPEmail(identifier, otpCode);
+      if (!sent) {
+        return res.json({ message: 'OTP generated', mockOtp: otpCode });
+      }
     } else {
       console.log(`\n========================================`);
       console.log(`📱 MOCK SMS SENT TO: ${identifier}`);
       console.log(`🔐 YOUR OTP CODE IS: ${otpCode}`);
       console.log(`========================================\n`);
+      return res.json({ message: 'OTP generated', mockOtp: otpCode });
     }
 
     res.json({ message: 'OTP sent successfully' });

@@ -11,6 +11,8 @@ export const Auth = ({ useAuthHook }) => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState('');
+  const [mockLink, setMockLink] = useState('');
+  const [mockOtp, setMockOtp] = useState('');
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -48,15 +50,35 @@ export const Auth = ({ useAuthHook }) => {
       setLocalError('Please enter your email first.');
       return;
     }
-    const success = await requestMagicLink(identifier);
-    if (success) setView('MAGIC_SENT');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/request-magic-link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: identifier, baseUrl: window.location.origin })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      if (data.mockLink) setMockLink(data.mockLink);
+      setView('MAGIC_SENT');
+    } catch (err) { setLocalError(err.message); }
+    finally { setLoading(false); }
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLocalError('');
-    const success = await forgotPassword(identifier);
-    if (success) setView('RESET');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      if (data.mockOtp) setMockOtp(data.mockOtp);
+      setView('RESET');
+    } catch (err) { setLocalError(err.message); }
+    finally { setLoading(false); }
   };
 
   const handleResetPassword = async (e) => {
@@ -101,6 +123,14 @@ export const Auth = ({ useAuthHook }) => {
               </div>
               <h2 style={{ marginBottom: '0.5rem' }}>Check Your Email</h2>
               <p style={{ color: 'var(--text-secondary)' }}>We've sent a magic link to <strong>{identifier}</strong>. Click it to log in instantly!</p>
+              
+              {mockLink && (
+                <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px dashed var(--primary-color)' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Email provider not configured. Use this mock link instead:</p>
+                  <a href={mockLink} style={{ color: 'var(--primary-color)', fontWeight: 'bold', wordBreak: 'break-all', fontSize: '0.9rem' }}>{mockLink}</a>
+                </div>
+              )}
+
               <button onClick={() => setView('LOGIN')} className="btn-secondary" style={{ width: '100%', marginTop: '2rem' }}>
                 Back to Login
               </button>
@@ -219,6 +249,11 @@ export const Auth = ({ useAuthHook }) => {
               <div style={{ textAlign: 'center', marginBottom: '1.5rem', marginTop: '1rem' }}>
                 <h1 className="page-title" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Enter Code & New Password</h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>We sent a code to <strong>{identifier}</strong></p>
+                {mockOtp && (
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: 'bold' }}>
+                    [MOCK SMS] Your Code: {mockOtp}
+                  </p>
+                )}
               </div>
 
               <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
