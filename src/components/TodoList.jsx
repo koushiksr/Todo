@@ -72,6 +72,11 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
     }
 
     result.sort((a, b) => {
+      if (sortOption === 'category') {
+        const catA = a.category || '';
+        const catB = b.category || '';
+        if (catA !== catB) return catA.localeCompare(catB);
+      }
       if (sortOption === 'az') return a.text.localeCompare(b.text);
       if (sortOption === 'za') return b.text.localeCompare(a.text);
       
@@ -116,6 +121,7 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
             <option value="oldest">Oldest First</option>
             <option value="az">A-Z</option>
             <option value="za">Z-A</option>
+            <option value="category">Category</option>
           </select>
           <select 
             value={filterOption} 
