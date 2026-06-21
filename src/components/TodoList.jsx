@@ -8,6 +8,11 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
   const [reminderTime, setReminderTime] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
   
+  // Search, Sort, Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState('newest'); // newest, oldest, az, za
+  const [filterOption, setFilterOption] = useState('all'); // all, reminders, no-reminders
+  
   const filteredTodos = todos.filter(t => t.category === category || category === 'all');
   const [localTodos, setLocalTodos] = useState(filteredTodos);
 
@@ -26,33 +31,95 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
   };
 
   const handleReorder = (newOrder) => {
-    setLocalTodos(newOrder); 
-    if (onReorder) {
-      onReorder(newOrder, category); 
+    // Only allow reorder if no filters/sorts are active
+    if (!searchQuery && sortOption === 'newest' && filterOption === 'all') {
+      setLocalTodos(newOrder); 
+      if (onReorder) {
+        onReorder(newOrder, category); 
+      }
     }
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } }
   };
+
+  // Apply Search, Sort, and Filter
+  const getProcessedTodos = () => {
+    let result = [...localTodos];
+
+    if (searchQuery) {
+      result = result.filter(t => t.text.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+
+    if (filterOption === 'reminders') {
+      result = result.filter(t => !!t.reminderTime);
+    } else if (filterOption === 'no-reminders') {
+      result = result.filter(t => !t.reminderTime);
+    }
+
+    result.sort((a, b) => {
+      if (sortOption === 'az') return a.text.localeCompare(b.text);
+      if (sortOption === 'za') return b.text.localeCompare(a.text);
+      
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      if (sortOption === 'oldest') return dateA - dateB;
+      return dateB - dateA; // default newest
+    });
+
+    return result;
+  };
+
+  const processedTodos = getProcessedTodos();
+  const isDefaultView = !searchQuery && sortOption === 'newest' && filterOption === 'all';
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">
-          {category === 'all' ? 'All Tasks' : `${category} Tasks`}
-        </h1>
-        <span className="tag tag-count">{filteredTodos.length} Tasks</span>
+      <div className="page-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="page-title">
+            {category === 'all' ? 'All Tasks' : `${category} Tasks`}
+          </h1>
+          <span className="tag tag-count">{filteredTodos.length} Tasks</span>
+        </div>
+        
+        <div className="control-bar" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', background: 'var(--surface-color)', padding: '0.75rem', borderRadius: '12px' }}>
+          <input 
+            type="text" 
+            placeholder="Search tasks..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field"
+            style={{ flex: '1 1 200px', padding: '0.4rem 0.75rem', fontSize: '0.9rem' }}
+          />
+          <select 
+            value={sortOption} 
+            onChange={(e) => setSortOption(e.target.value)}
+            className="input-field"
+            style={{ flex: '0 1 auto', padding: '0.4rem 0.75rem', fontSize: '0.9rem', width: 'auto' }}
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="az">A-Z</option>
+            <option value="za">Z-A</option>
+          </select>
+          <select 
+            value={filterOption} 
+            onChange={(e) => setFilterOption(e.target.value)}
+            className="input-field"
+            style={{ flex: '0 1 auto', padding: '0.4rem 0.75rem', fontSize: '0.9rem', width: 'auto' }}
+          >
+            <option value="all">All</option>
+            <option value="reminders">Has Reminder</option>
+            <option value="no-reminders">No Reminder</option>
+          </select>
+        </div>
       </div>
 
       <div className="todo-list-container">
-        {localTodos.length === 0 ? (
+        {processedTodos.length === 0 ? (
           <AnimatePresence>
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }} 
@@ -62,31 +129,46 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
               <div className="empty-icon-wrapper">
                 <CheckCircle size={32} color="var(--text-secondary)" />
               </div>
-              <h3>You're all caught up!</h3>
-              <p>Add a new task below to get started.</p>
+              <h3>{filteredTodos.length === 0 ? "You're all caught up!" : "No tasks match your filters."}</h3>
+              <p>{filteredTodos.length === 0 ? "Add a new task below to get started." : "Try adjusting your search or filters."}</p>
             </motion.div>
           </AnimatePresence>
         ) : (
-          <Reorder.Group 
-            axis="y" 
-            values={localTodos} 
-            onReorder={handleReorder} 
-            style={{ listStyle: 'none', padding: 0 }}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {localTodos.map((todo) => (
-              <TodoItem 
-                key={todo.id}
-                todo={todo} 
-                onToggle={onToggle} 
-                onEdit={onEdit}
-                onDelete={onDelete} 
-                onRestore={onRestore}
-              />
-            ))}
-          </Reorder.Group>
+          isDefaultView ? (
+            <Reorder.Group 
+              axis="y" 
+              values={localTodos} 
+              onReorder={handleReorder} 
+              style={{ listStyle: 'none', padding: 0 }}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {localTodos.map((todo) => (
+                <TodoItem 
+                  key={todo.id}
+                  todo={todo} 
+                  onToggle={onToggle} 
+                  onEdit={onEdit}
+                  onDelete={onDelete} 
+                  onRestore={onRestore}
+                />
+              ))}
+            </Reorder.Group>
+          ) : (
+            <div style={{ listStyle: 'none', padding: 0 }}>
+              {processedTodos.map((todo) => (
+                <TodoItem 
+                  key={todo.id}
+                  todo={todo} 
+                  onToggle={onToggle} 
+                  onEdit={onEdit}
+                  onDelete={onDelete} 
+                  onRestore={onRestore}
+                />
+              ))}
+            </div>
+          )
         )}
       </div>
 

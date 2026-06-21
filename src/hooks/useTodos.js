@@ -1,7 +1,29 @@
 import { useState, useEffect } from 'react';
+import CryptoJS from 'crypto-js';
 
 export const useTodos = (token) => {
   const [data, setData] = useState({ todos: [], history: [], bin: [] });
+
+  const getE2EKey = () => localStorage.getItem('todo_e2e_key');
+
+  const encryptText = (text) => {
+    const key = getE2EKey();
+    if (!key) return text;
+    return CryptoJS.AES.encrypt(text, key).toString();
+  };
+
+  const decryptText = (ciphertext) => {
+    const key = getE2EKey();
+    if (!key) return ciphertext;
+    try {
+      const bytes = CryptoJS.AES.decrypt(ciphertext, key);
+      const plaintext = bytes.toString(CryptoJS.enc.Utf8);
+      // If decryption fails (e.g. legacy unencrypted text), return original
+      return plaintext || ciphertext;
+    } catch (e) {
+      return ciphertext;
+    }
+  };
 
   const fetchTodos = async () => {
     if (!token) return;
@@ -11,8 +33,11 @@ export const useTodos = (token) => {
       });
       if (res.ok) {
         let todos = await res.json();
-        // Map _id to id for the frontend components
-        todos = todos.map(t => ({ ...t, id: t._id }));
+        todos = todos.map(t => ({ 
+          ...t, 
+          id: t._id,
+          text: decryptText(t.text)
+        }));
         
         const activeTodos = todos.filter(t => !t.deletedAt && !t.completed);
         const history = todos.filter(t => !t.deletedAt && t.completed);
@@ -30,11 +55,12 @@ export const useTodos = (token) => {
   }, [token]);
 
   const addTodo = async (text, category = 'daily', reminderTime = null) => {
+    const encryptedText = encryptText(text);
     try {
       const res = await fetch('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ text, category, reminderTime })
+        body: JSON.stringify({ text: encryptedText, category, reminderTime })
       });
       if (res.ok) {
         fetchTodos();
@@ -46,7 +72,6 @@ export const useTodos = (token) => {
 
   const toggleTodo = async (id, isHistory = false) => {
     let completed = !isHistory;
-    
     try {
       const res = await fetch(`/api/todos/${id}`, {
         method: 'PUT',
@@ -58,11 +83,12 @@ export const useTodos = (token) => {
   };
 
   const editTodo = async (id, text, reminderTime) => {
+    const encryptedText = encryptText(text);
     try {
       const res = await fetch(`/api/todos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ text, reminderTime, notified: false })
+        body: JSON.stringify({ text: encryptedText, reminderTime, notified: false })
       });
       if (res.ok) fetchTodos();
     } catch (err) {}
