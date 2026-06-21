@@ -87,6 +87,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         id: user._id, 
         name: user.name, 
         email: user.email, 
+        phone: user.phone,
+        dob: user.dob,
+        dp: user.dp,
         role: user.role, 
         customCategories: user.customCategories, 
         emailNotifications: user.emailNotifications, 
@@ -112,6 +115,50 @@ app.post('/api/user/categories', auth, async (req, res) => {
       await user.save();
     }
     res.json(user.customCategories);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/user/profile', auth, async (req, res) => {
+  try {
+    await connectDB();
+    const { name, email, phone, dob, dp } = req.body;
+    const user = await User.findById(req.user);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check email uniqueness if changed
+    if (email && email !== user.email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) return res.status(400).json({ message: 'Email already in use' });
+      user.email = email;
+    }
+
+    // Check phone uniqueness if changed
+    if (phone && phone !== user.phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) return res.status(400).json({ message: 'Phone number already in use' });
+      user.phone = phone;
+    }
+
+    if (name !== undefined) user.name = name;
+    if (dob !== undefined) user.dob = dob;
+    if (dp !== undefined) user.dp = dp;
+
+    await user.save();
+
+    res.json({
+      id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      phone: user.phone,
+      dob: user.dob,
+      dp: user.dp,
+      role: user.role, 
+      customCategories: user.customCategories, 
+      emailNotifications: user.emailNotifications, 
+      pushNotifications: user.pushNotifications 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

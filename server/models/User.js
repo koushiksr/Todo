@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, unique: true, sparse: true },
   password: { type: String, required: false },
   name: { type: String, default: 'User' },
+  dp: { type: String, default: null }, // Base64 or URL
+  dob: { type: Date, default: null },
   role: { type: String, default: 'user' },
   customCategories: [{ type: String }],
   emailNotifications: { type: Boolean, default: true },

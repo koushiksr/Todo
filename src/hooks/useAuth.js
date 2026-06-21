@@ -45,6 +45,9 @@ export const useAuth = () => {
         id: data.user.id, 
         name: data.user.name, 
         email: data.user.email, 
+        phone: data.user.phone,
+        dob: data.user.dob,
+        dp: data.user.dp,
         role: data.user.role, 
         customCategories: data.user.customCategories || [],
         emailNotifications: data.user.emailNotifications !== false,
@@ -113,6 +116,33 @@ export const useAuth = () => {
     }
   };
 
+  const updateProfile = async (profileData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update profile');
+      
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+      localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+      return { success: true };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('todo_token');
     localStorage.removeItem('todo_user');
@@ -121,5 +151,5 @@ export const useAuth = () => {
     setUser(null);
   };
 
-  return { user, token, loading, error, requestOTP, verifyOTP, logout, addCustomCategory, updateSettings };
+  return { user, token, loading, error, requestOTP, verifyOTP, logout, addCustomCategory, updateSettings, updateProfile };
 };

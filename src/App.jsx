@@ -13,7 +13,7 @@ import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, Mor
 
 function App() {
   const authHook = useAuth();
-  const { user, token, logout, updateSettings } = authHook;
+  const { user, token, logout, updateSettings, updateProfile } = authHook;
   
   const { 
     data, 
@@ -95,7 +95,7 @@ function App() {
 
         <div className="content-scroll">
           {currentView === 'settings' ? (
-            <Settings user={user} updateSettings={updateSettings} />
+            <Settings user={user} updateSettings={updateSettings} updateProfile={updateProfile} />
           ) : currentView === 'admin' && user.role === 'admin' ? (
             <AdminDashboard token={token} />
           ) : currentView === 'history' ? (
