@@ -170,6 +170,7 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
                   onEdit={onEdit}
                   onDelete={onDelete} 
                   onRestore={onRestore}
+                  isReorderable={true}
                 />
               ))}
             </Reorder.Group>

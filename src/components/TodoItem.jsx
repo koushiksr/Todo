@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation, Reorder, useDragControls } from 'framer-motion';
 
-export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore }) => {
+export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorderable = false }) => {
   const isDeleted = Boolean(todo.deletedAt);
   const x = useMotionValue(0);
   const swipeControls = useAnimation();
@@ -192,8 +192,17 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore }) => {
     </>
   );
 
-  if (isDeleted) {
-    return <div className="reorder-item-wrapper">{CardContent}</div>;
+  if (isDeleted || !isReorderable) {
+    return (
+      <motion.div 
+        className="reorder-item-wrapper"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+      >
+        {CardContent}
+      </motion.div>
+    );
   }
 
   return (
