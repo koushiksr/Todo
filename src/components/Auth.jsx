@@ -45,7 +45,7 @@ export const Auth = ({ useAuthHook }) => {
                   Welcome to TodoPro
                 </h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  Enter your email or phone number to sign in or create a new account securely.
+                  Enter your email address to sign in or create a new account securely.
                 </p>
               </div>
 
@@ -53,9 +53,9 @@ export const Auth = ({ useAuthHook }) => {
                 <div style={{ position: 'relative' }}>
                   <Mail size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                   <input 
-                    type="text" 
+                    type="email" 
                     className="input-field" 
-                    placeholder="Email or Phone Number" 
+                    placeholder="Email Address" 
                     value={identifier}
                     onChange={e => setIdentifier(e.target.value)}
                     style={{ width: '100%', paddingLeft: '3rem', height: '3.5rem', fontSize: '1rem' }}
