@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell } from 'lucide-react';
+import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell, Edit2 } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation, Reorder, useDragControls } from 'framer-motion';
 
 export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorderable = false }) => {
@@ -172,19 +172,29 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
                 </button>
               </>
             ) : (
-              <button 
-                onClick={() => onToggle(todo.id)} 
-                className="btn-icon"
-                style={{
-                  background: todo.completed ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                }}
-              >
-                <CheckCircle 
-                  size={28} 
-                  color={todo.completed ? 'var(--success-color)' : 'var(--border-color)'} 
-                  strokeWidth={todo.completed ? 2.5 : 1.5}
-                />
-              </button>
+              <>
+                <button 
+                  onClick={() => setIsEditing(true)} 
+                  className="btn-icon"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title="Edit task"
+                >
+                  <Edit2 size={22} />
+                </button>
+                <button 
+                  onClick={() => onToggle(todo.id)} 
+                  className="btn-icon"
+                  style={{
+                    background: todo.completed ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                  }}
+                >
+                  <CheckCircle 
+                    size={28} 
+                    color={todo.completed ? 'var(--success-color)' : 'var(--border-color)'} 
+                    strokeWidth={todo.completed ? 2.5 : 1.5}
+                  />
+                </button>
+              </>
             )}
           </div>
         )}
