@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useTodos } from './hooks/useTodos';
 import { useNotifications } from './hooks/useNotifications';
@@ -31,8 +31,14 @@ function App() {
 
   useNotifications(data.todos, markNotified);
 
-  const [currentView, setCurrentView] = useState('daily'); // daily, short, long, lifetime, all
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('todo_current_view') || 'daily';
+  }); 
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('todo_current_view', currentView);
+  }, [currentView]);
 
   if (!user || !token) {
     return <Auth useAuthHook={authHook} />;

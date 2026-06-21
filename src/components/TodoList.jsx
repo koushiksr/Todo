@@ -10,8 +10,20 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
   
   // Search, Sort, Filter States
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState('newest'); // newest, oldest, az, za
-  const [filterOption, setFilterOption] = useState('all'); // all, reminders, no-reminders
+  const [sortOption, setSortOption] = useState(() => {
+    return localStorage.getItem('todo_sort_option') || 'newest';
+  });
+  const [filterOption, setFilterOption] = useState(() => {
+    return localStorage.getItem('todo_filter_option') || 'all';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('todo_sort_option', sortOption);
+  }, [sortOption]);
+
+  useEffect(() => {
+    localStorage.setItem('todo_filter_option', filterOption);
+  }, [filterOption]);
   
   const filteredTodos = todos.filter(t => t.category === category || category === 'all');
   const [localTodos, setLocalTodos] = useState(filteredTodos);

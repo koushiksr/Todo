@@ -2,32 +2,13 @@ import { useState, useEffect } from 'react';
 import CryptoJS from 'crypto-js';
 
 export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem('todo_user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('todo_token'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const storedToken = localStorage.getItem('todo_token');
-    const storedUser = localStorage.getItem('todo_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem('todo_token', token);
-      const storedUser = localStorage.getItem('todo_user');
-      if (storedUser) setUser(JSON.parse(storedUser));
-    } else {
-      localStorage.removeItem('todo_token');
-      localStorage.removeItem('todo_user');
-      localStorage.removeItem('todo_e2e_key');
-      setUser(null);
-    }
-  }, [token]);
 
   const generateE2EKey = (email, password) => {
     return CryptoJS.SHA256(password + email).toString();
@@ -151,7 +132,11 @@ export const useAuth = () => {
   };
 
   const logout = () => {
+    localStorage.removeItem('todo_token');
+    localStorage.removeItem('todo_user');
+    localStorage.removeItem('todo_e2e_key');
     setToken(null);
+    setUser(null);
   };
 
   return { user, token, loading, error, login, register, logout, addCustomCategory, updateSettings };

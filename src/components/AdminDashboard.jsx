@@ -5,7 +5,23 @@ export const AdminDashboard = ({ token }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: 'total', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState(() => {
+    const stored = localStorage.getItem('admin_sort_config');
+    return stored ? JSON.parse(stored) : { key: 'total', direction: 'desc' };
+  });
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState(() => {
+    return localStorage.getItem('admin_role_filter') || 'all';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('admin_sort_config', JSON.stringify(sortConfig));
+  }, [sortConfig]);
+
+  useEffect(() => {
+    localStorage.setItem('admin_role_filter', roleFilter);
+  }, [roleFilter]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -35,9 +51,6 @@ export const AdminDashboard = ({ token }) => {
     }
     setSortConfig({ key, direction });
   };
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all'); // all, admin, user
 
   const getProcessedUsers = () => {
     let processed = [...users];
