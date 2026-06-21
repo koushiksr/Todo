@@ -9,14 +9,14 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const requestOTP = async (email) => {
+  const requestOTP = async (identifier) => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ identifier }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to request OTP');
@@ -29,14 +29,14 @@ export const useAuth = () => {
     }
   };
 
-  const verifyOTP = async (email, code, name = '') => {
+  const verifyOTP = async (identifier, code, name = '') => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, name }),
+        body: JSON.stringify({ identifier, code, name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Verification failed');
