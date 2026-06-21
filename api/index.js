@@ -60,7 +60,8 @@ app.post('/api/auth/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
     const user = await User.findOne({ email });
-    if (!user || !user.password) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user.password) return res.status(400).json({ message: 'No password set. Please use Magic Link or Forgot Password.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });

@@ -14,11 +14,14 @@ export const Auth = ({ useAuthHook }) => {
   const [mockLink, setMockLink] = useState('');
   const [mockOtp, setMockOtp] = useState('');
 
+  const verifyAttempted = React.useRef(false);
+
   useEffect(() => {
     const path = window.location.pathname;
     if (path.startsWith('/magic-link/')) {
       const token = path.split('/')[2];
-      if (token) {
+      if (token && !verifyAttempted.current) {
+        verifyAttempted.current = true;
         setView('MAGIC_VERIFYING');
         verifyMagicLink(token).then(success => {
           if (!success) {
