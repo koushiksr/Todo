@@ -27,10 +27,8 @@ export const useNotifications = (todos, markNotified, user, token) => {
               if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistration().then(registration => {
                   if (registration) {
-                    registration.showNotification('TodoPro Reminder', {
-                      body: `Time to do: ${todo.text}`,
-                      icon: '/favicon.svg',
-                      vibrate: [200, 100, 200, 100, 200, 100, 200],
+                    registration.showNotification(todo.text, {
+                      body: 'Reminder',
                       requireInteraction: true
                     });
                   } else {
@@ -66,9 +64,8 @@ export const useNotifications = (todos, markNotified, user, token) => {
 
     const fallbackNotification = (text) => {
       try {
-        new Notification('TodoPro Reminder', {
-          body: `Time to do: ${text}`,
-          icon: '/favicon.svg',
+        new Notification(text, {
+          body: 'Reminder',
           requireInteraction: true
         });
       } catch (e) {
