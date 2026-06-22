@@ -9,7 +9,7 @@ import { Auth } from './components/Auth';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Settings } from './components/Settings';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon, List, Plus } from 'lucide-react';
+import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon, List, Plus, Bell } from 'lucide-react';
 
 function App() {
   const authHook = useAuth();
@@ -86,7 +86,17 @@ function App() {
       />
       
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
+          {('Notification' in window && Notification.permission === 'default') && (
+            <button 
+              onClick={() => Notification.requestPermission().then(() => window.location.reload())} 
+              className="nav-item" 
+              style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--primary-color)', color: '#fff' }}
+            >
+              <Bell size={18} />
+              <span style={{ fontSize: '0.9rem' }}>Enable Notifications</span>
+            </button>
+          )}
           <button onClick={logout} className="nav-item" style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--surface-color)', color: 'var(--danger-color)' }}>
             <LogOut size={18} />
             <span style={{ fontSize: '0.9rem' }}>Logout</span>

@@ -175,7 +175,13 @@ export const Settings = ({ user, updateSettings, updateProfile }) => {
               <input 
                 type="checkbox" 
                 checked={user.pushNotifications !== false} 
-                onChange={() => updateSettings({ pushNotifications: !(user.pushNotifications !== false) })}
+                onChange={() => {
+                  const newVal = !(user.pushNotifications !== false);
+                  updateSettings({ pushNotifications: newVal });
+                  if (newVal && 'Notification' in window && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                  }
+                }}
               />
               <span className="slider round"></span>
             </label>
