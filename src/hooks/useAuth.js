@@ -1,13 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useAuth = () => {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('todo_user');
-    return storedUser ? JSON.parse(storedUser) : null;
+  const [accounts, setAccounts] = useState(() => {
+    const storedAccounts = localStorage.getItem('todo_accounts');
+    if (storedAccounts) {
+      return JSON.parse(storedAccounts);
+    }
+    // Migration from old single-user system
+    const oldUser = localStorage.getItem('todo_user');
+    const oldToken = localStorage.getItem('todo_token');
+    if (oldUser && oldToken) {
+      const parsedUser = JSON.parse(oldUser);
+      const migrated = [{ user: parsedUser, token: oldToken }];
+      localStorage.setItem('todo_accounts', JSON.stringify(migrated));
+      localStorage.setItem('todo_active_account_id', parsedUser.id);
+      
+      // Cleanup old keys
+      localStorage.removeItem('todo_user');
+      localStorage.removeItem('todo_token');
+      return migrated;
+    }
+    return [];
   });
-  const [token, setToken] = useState(() => localStorage.getItem('todo_token'));
+
+  const [activeAccountId, setActiveAccountId] = useState(() => {
+    const storedId = localStorage.getItem('todo_active_account_id');
+    return storedId || null;
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const activeAccount = accounts.find(a => a.user.id === activeAccountId) || null;
+  const user = activeAccount ? activeAccount.user : null;
+  const token = activeAccount ? activeAccount.token : null;
+
+  const saveAccounts = (newAccounts, newActiveId) => {
+    localStorage.setItem('todo_accounts', JSON.stringify(newAccounts));
+    localStorage.setItem('todo_active_account_id', newActiveId);
+    setAccounts(newAccounts);
+    setActiveAccountId(newActiveId);
+  };
 
   const handleAuthResponse = async (res) => {
     const data = await res.json();
@@ -26,10 +59,8 @@ export const useAuth = () => {
       pushNotifications: data.user.pushNotifications !== false
     };
     
-    localStorage.setItem('todo_user', JSON.stringify(userData));
-    localStorage.setItem('todo_token', data.token);
-    setToken(data.token);
-    setUser(userData);
+    const newAccounts = [...accounts.filter(a => a.user.id !== userData.id), { user: userData, token: data.token }];
+    saveAccounts(newAccounts, userData.id);
     return true;
   };
 
@@ -59,6 +90,27 @@ export const useAuth = () => {
     finally { setLoading(false); }
   };
 
+  const switchAccount = (accountId) => {
+    if (accounts.some(a => a.user.id === accountId)) {
+      localStorage.setItem('todo_active_account_id', accountId);
+      setActiveAccountId(accountId);
+    }
+  };
+
+  const logoutAccount = (accountId) => {
+    const newAccounts = accounts.filter(a => a.user.id !== accountId);
+    let newActiveId = activeAccountId;
+    if (accountId === activeAccountId) {
+      newActiveId = newAccounts.length > 0 ? newAccounts[0].user.id : null;
+    }
+    saveAccounts(newAccounts, newActiveId);
+  };
+
+  const updateActiveUser = (updatedUser) => {
+    const newAccounts = accounts.map(a => a.user.id === activeAccountId ? { ...a, user: updatedUser } : a);
+    saveAccounts(newAccounts, activeAccountId);
+  };
+
   const addCustomCategory = async (category) => {
     try {
       const res = await fetch('/api/user/categories', {
@@ -71,9 +123,7 @@ export const useAuth = () => {
       });
       if (res.ok) {
         const newCategories = await res.json();
-        const updatedUser = { ...user, customCategories: newCategories };
-        setUser(updatedUser);
-        localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+        updateActiveUser({ ...user, customCategories: newCategories });
       }
     } catch (err) {
       console.error('Failed to add category', err);
@@ -92,13 +142,11 @@ export const useAuth = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        const updatedUser = { 
+        updateActiveUser({ 
           ...user, 
           emailNotifications: data.emailNotifications,
           pushNotifications: data.pushNotifications 
-        };
-        setUser(updatedUser);
-        localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+        });
         return true;
       }
       return false;
@@ -123,9 +171,7 @@ export const useAuth = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update profile');
       
-      const updatedUser = { ...user, ...data };
-      setUser(updatedUser);
-      localStorage.setItem('todo_user', JSON.stringify(updatedUser));
+      updateActiveUser({ ...user, ...data });
       return { success: true };
     } catch (err) {
       setError(err.message);
@@ -135,22 +181,25 @@ export const useAuth = () => {
     }
   };
 
+  // Backwards compatible logout (logs out current active account)
   const logout = () => {
-    localStorage.removeItem('todo_token');
-    localStorage.removeItem('todo_user');
-    localStorage.removeItem('todo_e2e_key'); // clear legacy key if exists
-    setToken(null);
-    setUser(null);
+    if (activeAccountId) {
+      logoutAccount(activeAccountId);
+    }
   };
 
   return { 
     user, 
     token, 
+    accounts,
+    activeAccountId,
     loading, 
     error, 
     requestOTP,
     verifyOTP,
     logout,
+    logoutAccount,
+    switchAccount,
     addCustomCategory, 
     updateSettings, 
     updateProfile 

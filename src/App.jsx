@@ -8,6 +8,7 @@ import { TodoItem } from './components/TodoItem';
 import { Auth } from './components/Auth';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Settings } from './components/Settings';
+import { AccountSwitcher } from './components/AccountSwitcher';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Target, Repeat, Archive, Trash2, Download, Upload, MoreHorizontal, X, LogOut, Shield, Tag, Settings as SettingsIcon, List, Plus, Bell } from 'lucide-react';
 
@@ -36,13 +37,14 @@ function App() {
   }); 
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [newMobileCategory, setNewMobileCategory] = useState('');
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('todo_current_view', currentView);
   }, [currentView]);
 
-  if (!user || !token) {
-    return <Auth useAuthHook={authHook} />;
+  if (!user || !token || isAddingAccount) {
+    return <Auth useAuthHook={authHook} onCancel={isAddingAccount ? () => setIsAddingAccount(false) : undefined} />;
   }
 
   const exportData = () => {
@@ -87,10 +89,13 @@ function App() {
       
       <main className="main-content">
         <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
-          <button onClick={logout} className="nav-item" style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--surface-color)', color: 'var(--danger-color)' }}>
-            <LogOut size={18} />
-            <span style={{ fontSize: '0.9rem' }}>Logout</span>
-          </button>
+          <AccountSwitcher 
+            accounts={authHook.accounts}
+            activeAccountId={authHook.activeAccountId}
+            switchAccount={authHook.switchAccount}
+            logoutAccount={authHook.logoutAccount}
+            onAddAccount={() => setIsAddingAccount(true)}
+          />
         </header>
 
         <AnimatePresence>

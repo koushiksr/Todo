@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, KeyRound, ArrowLeft, User, AlertCircle, Phone } from 'lucide-react';
 
-export const Auth = ({ useAuthHook }) => {
+export const Auth = ({ useAuthHook, onCancel }) => {
   const { requestOTP, verifyOTP, loading, error } = useAuthHook;
   
   const [view, setView] = useState('REQUEST'); // 'REQUEST' or 'VERIFY'
   const [identifier, setIdentifier] = useState(''); 
-  const [name, setName] = useState(''); // Only needed if they are new
+  const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState('');
 
@@ -32,7 +32,10 @@ export const Auth = ({ useAuthHook }) => {
   const handleVerify = async (e) => {
     e.preventDefault();
     setLocalError('');
-    await verifyOTP(identifier, otp, name);
+    const success = await verifyOTP(identifier, otp, name);
+    if (success && onCancel) {
+      onCancel();
+    }
   };
 
   const renderError = () => {
@@ -54,6 +57,15 @@ export const Auth = ({ useAuthHook }) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
       >
+        {onCancel && (
+          <button 
+            onClick={onCancel}
+            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+          >
+            <X size={20} />
+          </button>
+        )}
+
         <AnimatePresence mode="wait">
           {view === 'REQUEST' && (
             <motion.div key="request" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
