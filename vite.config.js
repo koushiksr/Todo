@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'TodoPro - Premium Task Manager',
-        short_name: 'TodoPro',
+        name: 'Todo',
+        short_name: 'Todo',
         description: 'Manage your daily, short-term, long-term, and lifetime tasks with a beautiful swipeable interface.',
         theme_color: '#0f172a',
         background_color: '#0f172a',
