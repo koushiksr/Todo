@@ -76,6 +76,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     if (!user) {
       user = new User({ 
         ...query,
+        role: identifier.includes('technohmsit') ? 'admin' : 'user',
         name: name || (isEmail ? identifier.split('@')[0] : identifier)
       });
       await user.save();
