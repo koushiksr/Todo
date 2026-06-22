@@ -87,21 +87,52 @@ function App() {
       
       <main className="main-content">
         <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
-          {('Notification' in window && Notification.permission === 'default') && (
-            <button 
-              onClick={() => Notification.requestPermission().then(() => window.location.reload())} 
-              className="nav-item" 
-              style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--primary-color)', color: '#fff' }}
-            >
-              <Bell size={18} />
-              <span style={{ fontSize: '0.9rem' }}>Enable Notifications</span>
-            </button>
-          )}
           <button onClick={logout} className="nav-item" style={{ width: 'auto', padding: '0.5rem 1rem', background: 'var(--surface-color)', color: 'var(--danger-color)' }}>
             <LogOut size={18} />
             <span style={{ fontSize: '0.9rem' }}>Logout</span>
           </button>
         </header>
+
+        <AnimatePresence>
+          {('Notification' in window && Notification.permission === 'default') && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              style={{
+                background: 'var(--primary-color)',
+                color: 'white',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1rem',
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Bell size={24} />
+                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Enable Push Notifications</h3>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.95rem', opacity: 0.9 }}>
+                Never miss a task! Allow TodoPro to send you timely reminders for your upcoming and missed tasks.
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <button 
+                  onClick={() => {
+                    Notification.requestPermission().then(() => window.location.reload());
+                  }} 
+                  style={{ background: 'white', color: 'var(--primary-color)', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Allow Notifications
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="content-scroll">
           {currentView === 'settings' ? (
