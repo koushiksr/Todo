@@ -10,7 +10,6 @@ export const Auth = ({ useAuthHook }) => {
   const [name, setName] = useState(''); // Only needed if they are new
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState('');
-  const [mockOtp, setMockOtp] = useState('');
 
   const handleRequest = async (e) => {
     e.preventDefault();
@@ -22,7 +21,6 @@ export const Auth = ({ useAuthHook }) => {
     
     const data = await requestOTP(identifier);
     if (data) {
-      if (data.mockOtp) setMockOtp(data.mockOtp);
       setView('VERIFY');
     }
   };
@@ -85,13 +83,6 @@ export const Auth = ({ useAuthHook }) => {
                 <h1 className="page-title" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Verify Code</h1>
                 <p style={{ color: 'var(--text-secondary)' }}>Enter the code sent to <strong>{identifier}</strong></p>
               </div>
-
-              {mockOtp && (
-                <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px dashed var(--primary-color)', textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Mock Mode (No Email Configured)</p>
-                  <p style={{ color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '1.5rem', letterSpacing: '4px' }}>{mockOtp}</p>
-                </div>
-              )}
 
               <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ position: 'relative' }}>
