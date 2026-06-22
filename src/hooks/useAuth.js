@@ -33,76 +33,26 @@ export const useAuth = () => {
     return true;
   };
 
-  const login = async (email, password) => {
+  const requestOTP = async (identifier) => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      return await handleAuthResponse(res);
-    } catch (err) { setError(err.message); return false; }
-    finally { setLoading(false); }
-  };
-
-  const register = async (name, email, password) => {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
-      });
-      return await handleAuthResponse(res);
-    } catch (err) { setError(err.message); return false; }
-    finally { setLoading(false); }
-  };
-
-  const requestMagicLink = async (email) => {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch('/api/auth/request-magic-link', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, baseUrl: window.location.origin })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      return true;
-    } catch (err) { setError(err.message); return false; }
-    finally { setLoading(false); }
-  };
-
-  const verifyMagicLink = async (tokenParam) => {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch('/api/auth/verify-magic-link', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenParam })
-      });
-      return await handleAuthResponse(res);
-    } catch (err) { setError(err.message); return false; }
-    finally { setLoading(false); }
-  };
-
-  const forgotPassword = async (identifier) => {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/request-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      return true;
-    } catch (err) { setError(err.message); return false; }
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to request OTP');
+      return data;
+    } catch (err) { setError(err.message); return null; }
     finally { setLoading(false); }
   };
 
-  const resetPassword = async (identifier, code, newPassword) => {
+  const verifyOTP = async (identifier, code, name) => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch('/api/auth/verify-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, code, newPassword })
+        body: JSON.stringify({ identifier, code, name })
       });
       return await handleAuthResponse(res);
     } catch (err) { setError(err.message); return false; }
@@ -193,5 +143,16 @@ export const useAuth = () => {
     setUser(null);
   };
 
-  return { user, token, loading, error, login, register, requestMagicLink, verifyMagicLink, forgotPassword, resetPassword, logout, addCustomCategory, updateSettings, updateProfile };
+  return { 
+    user, 
+    token, 
+    loading, 
+    error, 
+    requestOTP,
+    verifyOTP,
+    logout,
+    addCustomCategory, 
+    updateSettings, 
+    updateProfile 
+  };
 };

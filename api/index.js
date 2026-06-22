@@ -1,11 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail, sendMagicLinkEmail } from '../server/utils/mailer.js';
+import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail } from '../server/utils/mailer.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import OTP from '../server/models/OTP.js';
-import MagicLink from '../server/models/MagicLink.js';
 import Todo from '../server/models/Todo.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -32,114 +31,16 @@ if (!process.env.JWT_SECRET) {
   console.warn("WARNING: JWT_SECRET is not defined in environment variables! Logins will fail.");
 }
 
-// Auth Routes
-// Register (Email + Password)
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    await connectDB();
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ message: 'All fields are required' });
-
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: 'User already exists' });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    user = new User({ name, email, password: hashedPassword });
-    await user.save();
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: generateUserPayload(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Login (Email + Password)
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    await connectDB();
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-    if (!user.password) return res.status(400).json({ message: 'No password set. Please use Magic Link or Forgot Password.' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: generateUserPayload(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Request Magic Link
-app.post('/api/auth/request-magic-link', async (req, res) => {
-  try {
-    await connectDB();
-    const { email, baseUrl } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
-
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = new User({ name: email.split('@')[0], email, password: Math.random().toString(36).slice(-8) });
-      await user.save();
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    await MagicLink.deleteMany({ email });
-    await new MagicLink({ email, token }).save();
-
-
-    const sent = await sendMagicLinkEmail(email, token, baseUrl || 'http://localhost:5173');
-
-    if (!sent) {
-      // Mock mode: return the link to the frontend if email sending fails or is unconfigured
-      return res.json({ message: 'Magic link generated', mockLink: `${baseUrl || 'http://localhost:5173'}/magic-link/${token}` });
-    }
-
-    res.json({ message: 'Magic link sent' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Verify Magic Link
-app.post('/api/auth/verify-magic-link', async (req, res) => {
-  try {
-    await connectDB();
-    const { token } = req.body;
-    
-    const magicLink = await MagicLink.findOne({ token });
-    if (!magicLink) return res.status(400).json({ message: 'Invalid or expired magic link' });
-
-    const user = await User.findOne({ email: magicLink.email });
-    await MagicLink.deleteOne({ _id: magicLink._id });
-
-    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token: jwtToken, user: generateUserPayload(user) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Forgot Password (Request OTP)
-app.post('/api/auth/forgot-password', async (req, res) => {
+// Request OTP
+app.post('/api/auth/request-otp', async (req, res) => {
   try {
     await connectDB();
     const { identifier } = req.body;
-    if (!identifier) return res.status(400).json({ message: 'Email or phone is required.' });
+    if (!identifier) return res.status(400).json({ message: 'Email or phone number is required.' });
 
     const isEmail = identifier.includes('@');
-    const query = isEmail ? { email: identifier } : { phone: identifier };
-    const user = await User.findOne(query);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
     await OTP.deleteMany({ identifier });
     await new OTP({ identifier, code: otpCode }).save();
 
@@ -162,27 +63,31 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-// Reset Password (Verify OTP + Set Password)
-app.post('/api/auth/reset-password', async (req, res) => {
+// Verify OTP
+app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     await connectDB();
-    const { identifier, code, newPassword } = req.body;
-    if (!identifier || !code || !newPassword) return res.status(400).json({ message: 'All fields are required.' });
+    const { identifier, code, name } = req.body;
+    if (!identifier || !code) return res.status(400).json({ message: 'Identifier and code required' });
 
     const validOtp = await OTP.findOne({ identifier, code });
-    if (!validOtp) return res.status(400).json({ message: 'Invalid or expired code.' });
+    if (!validOtp) return res.status(400).json({ message: 'Invalid or expired code' });
 
     await OTP.deleteOne({ _id: validOtp._id });
 
     const isEmail = identifier.includes('@');
     const query = isEmail ? { email: identifier } : { phone: identifier };
-    const user = await User.findOne(query);
+    
+    let user = await User.findOne(query);
+    if (!user) {
+      user = new User({ 
+        ...query,
+        name: name || (isEmail ? identifier.split('@')[0] : identifier)
+      });
+      await user.save();
+    }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '365d' });
     res.json({ token, user: generateUserPayload(user) });
   } catch (err) {
     res.status(500).json({ error: err.message });
