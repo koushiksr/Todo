@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, KeyRound, ArrowLeft, User, AlertCircle, Phone } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft, User, AlertCircle, Phone, X } from 'lucide-react';
 
 export const Auth = ({ useAuthHook, onCancel }) => {
   const { requestOTP, verifyOTP, loading, error } = useAuthHook;
