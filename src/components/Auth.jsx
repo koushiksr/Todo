@@ -15,7 +15,11 @@ export const Auth = ({ useAuthHook }) => {
     e.preventDefault();
     setLocalError('');
     if (!identifier) {
-      setLocalError('Please enter your email or phone number.');
+      setLocalError('Please enter your email address.');
+      return;
+    }
+    if (!identifier.includes('@')) {
+      setLocalError('Only email login is supported.');
       return;
     }
     
@@ -62,7 +66,7 @@ export const Auth = ({ useAuthHook }) => {
               <form onSubmit={handleRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ position: 'relative' }}>
                   <Mail size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                  <input type="text" className="input-field" placeholder="Email or Phone Number" value={identifier} onChange={e => setIdentifier(e.target.value)} style={{ width: '100%', paddingLeft: '3rem', height: '3.5rem' }} required />
+                  <input type="email" className="input-field" placeholder="Email Address" value={identifier} onChange={e => setIdentifier(e.target.value)} style={{ width: '100%', paddingLeft: '3rem', height: '3.5rem' }} required />
                 </div>
 
                 {renderError()}

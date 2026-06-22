@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { sendDailyReminderEmail, sendInstantReminderEmail, sendOTPEmail } from '../server/utils/mailer.js';
-import { sendWhatsAppOTP } from '../server/utils/whatsapp.js';
 import connectDB from '../server/db.js';
 import User from '../server/models/User.js';
 import OTP from '../server/models/OTP.js';
@@ -37,24 +36,19 @@ app.post('/api/auth/request-otp', async (req, res) => {
   try {
     await connectDB();
     const { identifier } = req.body;
-    if (!identifier) return res.status(400).json({ message: 'Email or phone number is required.' });
+    if (!identifier) return res.status(400).json({ message: 'Email is required.' });
 
     const isEmail = identifier.includes('@');
+    if (!isEmail) return res.status(400).json({ message: 'Only email login is supported.' });
+
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     await OTP.deleteMany({ identifier });
     await new OTP({ identifier, code: otpCode }).save();
 
-    if (isEmail) {
-      const sent = await sendOTPEmail(identifier, otpCode);
-      if (!sent) {
-        return res.status(500).json({ message: 'Email credentials not configured on server. Contact admin.' });
-      }
-    } else {
-      const sent = await sendWhatsAppOTP(identifier, otpCode);
-      if (!sent) {
-        return res.status(500).json({ message: 'Twilio WhatsApp credentials not configured on server. Contact admin.' });
-      }
+    const sent = await sendOTPEmail(identifier, otpCode);
+    if (!sent) {
+      return res.status(500).json({ message: 'Email credentials not configured on server. Contact admin.' });
     }
 
     res.json({ message: 'OTP sent successfully' });
