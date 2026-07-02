@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell } from 'lucide-react';
+import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell, MoreVertical, Edit2 } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useAnimation, Reorder, useDragControls } from 'framer-motion';
 
 export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorderable = false }) => {
@@ -11,7 +11,9 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
   const [editTime, setEditTime] = useState(todo.reminderTime || '');
+  const [showMenu, setShowMenu] = useState(false);
   const inputRef = useRef(null);
+  const menuRef = useRef(null);
   
   const opacityRight = useTransform(x, [0, 80], [0, 1]); 
   const opacityLeft = useTransform(x, [0, -80], [0, 1]); 
@@ -23,6 +25,22 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
       inputRef.current.focus();
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const longPressTimer = useRef(null);
 
@@ -187,7 +205,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
         </div>
 
         {!isEditing && (
-          <div className="todo-actions">
+          <div className="todo-actions" style={{ position: 'relative' }} ref={menuRef}>
             {isDeleted ? (
               <>
                 <button onClick={() => onRestore(todo.id)} className="btn-icon">
@@ -198,19 +216,48 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
                 </button>
               </>
             ) : (
-              <button 
-                onClick={() => onToggle(todo.id)} 
-                className="btn-icon"
-                style={{
-                  background: todo.completed ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                }}
-              >
-                <CheckCircle 
-                  size={28} 
-                  color={todo.completed ? 'var(--success-color)' : 'var(--border-color)'} 
-                  strokeWidth={todo.completed ? 2.5 : 1.5}
-                />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <button 
+                  onClick={() => setShowMenu(!showMenu)} 
+                  className="btn-icon"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <MoreVertical size={20} />
+                </button>
+                
+                <AnimatePresence>
+                  {showMenu && (
+                    <motion.div 
+                      className="dropdown-menu"
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <button className="dropdown-item" onClick={() => { setIsEditing(true); setShowMenu(false); }}>
+                        <Edit2 size={16} /> Edit Task
+                      </button>
+                      <button className="dropdown-item danger" onClick={() => { onDelete(todo.id); setShowMenu(false); }}>
+                        <Trash2 size={16} /> Delete Task
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button 
+                  onClick={() => onToggle(todo.id)} 
+                  className="btn-icon"
+                  style={{
+                    background: todo.completed ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                  }}
+                >
+                  <CheckCircle 
+                    size={28} 
+                    color={todo.completed ? 'var(--success-color)' : 'var(--border-color)'} 
+                    strokeWidth={todo.completed ? 2.5 : 1.5}
+                  />
+                </button>
+              </div>
             )}
           </div>
         )}
