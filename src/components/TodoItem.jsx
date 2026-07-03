@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Trash2, CheckCircle, RotateCcw, GripVertical, Bell, MoreVertical, Edit2 } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useAnimation, Reorder, useDragControls } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useAnimation, Reorder, useDragControls, AnimatePresence } from 'framer-motion';
 
 export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorderable = false }) => {
   const isDeleted = Boolean(todo.deletedAt);
