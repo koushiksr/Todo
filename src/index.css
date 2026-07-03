@@ -220,7 +220,7 @@ body {
 .todo-list-container {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 120px; /* Space for sticky input */
+  padding-bottom: 20px; /* Minor padding */
   touch-action: pan-y;
   list-style: none;
 }
@@ -350,11 +350,8 @@ body {
 
 /* Form & Inputs */
 .sticky-form-wrapper {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 1.5rem 0;
+  flex-shrink: 0;
+  padding: 1rem 0 0 0;
   background: linear-gradient(to top, var(--bg-color) 60%, transparent);
   z-index: 10;
 }
@@ -597,23 +594,14 @@ body {
   .bottom-nav {
     display: none; 
   }
-  .sticky-form-wrapper {
-    margin-bottom: 0; 
-  }
   .todo-list-container {
     padding-bottom: 80px; 
   }
 }
 
 @media (max-width: 767px) {
-  .sticky-form-wrapper {
-    bottom: calc(65px + env(safe-area-inset-bottom));
-    padding-bottom: 0.5rem;
-  }
-  .todo-list-container {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom)); 
-  }
   .main-content {
     padding: 1rem;
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
   }
 }
