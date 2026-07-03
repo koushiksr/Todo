@@ -269,9 +269,11 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
     return (
       <motion.div 
         className="reorder-item-wrapper"
+        style={{ zIndex: showMenu ? 50 : 1 }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+        layout
       >
         {CardContent}
       </motion.div>
@@ -283,6 +285,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
       value={todo} 
       id={todo.id}
       className="reorder-item-wrapper"
+      style={{ zIndex: showMenu ? 50 : 1 }}
       dragListener={false} 
       dragControls={dragControls}
       variants={{
