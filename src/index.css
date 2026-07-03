@@ -21,15 +21,22 @@
   box-sizing: border-box;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Lock the outermost scroll */
+  overscroll-behavior: none; /* Prevent rubber-banding and pull-to-refresh */
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--bg-color);
   background-image: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
   color: var(--text-primary);
-  min-height: 100vh;
-  min-height: 100dvh;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  position: fixed; /* Absolute lock on mobile */
 }
 
 /* Base Layout */
@@ -223,6 +230,7 @@ body {
   padding-bottom: 100px; /* Space for last dropdown menu */
   touch-action: pan-y;
   list-style: none;
+  overscroll-behavior-y: contain; /* Stop scroll chaining to outer layout */
 }
 
 /* Todo Card */
