@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { TodoItem } from './TodoItem';
-import { Plus, Bell } from 'lucide-react';
+import { Plus, Bell, X } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, onRestore, onReorder }) => {
   const [newTask, setNewTask] = useState('');
   const [reminderTime, setReminderTime] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   
   // Search, Sort, Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +40,7 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
       setNewTask('');
       setReminderTime('');
       setShowTimePicker(false);
+      setIsAdding(false);
     }
   };
 
@@ -191,69 +193,128 @@ export const TodoList = ({ todos, category, onAdd, onToggle, onEdit, onDelete, o
         )}
       </div>
 
-      <div className="sticky-form-wrapper">
-        <form onSubmit={handleAdd} className="todo-form">
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', position: 'relative' }}>
-              <input
-                type="text"
-                className="input-field"
-                placeholder={`Add a new ${category} task...`}
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-              />
-              <button 
-                type="button" 
-                onClick={() => setShowTimePicker(!showTimePicker)}
-                style={{
-                  position: 'absolute',
-                  right: '0.5rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'transparent',
-                  border: 'none',
-                  color: reminderTime ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '0.5rem'
-                }}
-              >
-                <Bell size={20} />
-              </button>
-            </div>
-            
-            <AnimatePresence>
-              {showTimePicker && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}
-                >
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Remind me at:</span>
-                  <input 
-                    type="time" 
-                    value={reminderTime}
-                    onChange={(e) => setReminderTime(e.target.value)}
+      <div className="fab-container">
+        <AnimatePresence mode="wait">
+          {!isAdding ? (
+            <motion.button
+              key="fab-button"
+              layoutId="fab-morph"
+              onClick={() => setIsAdding(true)}
+              className="btn-primary fab-button"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+            >
+              <Plus size={32} />
+            </motion.button>
+          ) : (
+            <motion.form
+              key="fab-form"
+              layoutId="fab-morph"
+              onSubmit={handleAdd}
+              className="todo-form fab-form"
+              initial={{ borderRadius: 32 }}
+              animate={{ borderRadius: 16 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            >
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', position: 'relative' }}>
+                  <input
+                    type="text"
                     className="input-field"
-                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', width: 'auto' }}
+                    placeholder="Add a new task..."
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    autoFocus
                   />
-                  {reminderTime && (
-                    <button type="button" onClick={() => setReminderTime('')} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '0.85rem' }}>Clear</button>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowTimePicker(!showTimePicker)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.5rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: reminderTime ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      padding: '0.5rem'
+                    }}
+                  >
+                    <Bell size={20} />
+                  </button>
+                </div>
+                
+                <AnimatePresence>
+                  {showTimePicker && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}
+                    >
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Remind me at:</span>
+                      <input 
+                        type="time" 
+                        value={reminderTime}
+                        onChange={(e) => setReminderTime(e.target.value)}
+                        className="input-field"
+                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.9rem', width: 'auto' }}
+                      />
+                      {reminderTime && (
+                        <button type="button" onClick={() => setReminderTime('')} style={{ background: 'transparent', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '0.85rem' }}>Clear</button>
+                      )}
+                    </motion.div>
                   )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </AnimatePresence>
+              </div>
 
-          <button 
-            type="submit" 
-            className="btn-primary" 
-            disabled={!newTask.trim()}
-            style={{ opacity: !newTask.trim() ? 0.5 : 1, alignSelf: 'flex-start', height: '54px' }}
-          >
-            <Plus size={24} strokeWidth={3} />
-          </button>
-        </form>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={!newTask.trim()}
+                  style={{ 
+                    padding: '1rem',
+                    borderRadius: '14px',
+                    aspectRatio: '1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Plus size={24} />
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsAdding(false);
+                    setShowTimePicker(false);
+                  }}
+                  className="btn-secondary"
+                  style={{ 
+                    padding: '1rem',
+                    borderRadius: '14px',
+                    aspectRatio: '1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

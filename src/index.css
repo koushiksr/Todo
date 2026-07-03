@@ -348,12 +348,37 @@ body {
   justify-content: flex-end;
 }
 
-/* Form & Inputs */
-.sticky-form-wrapper {
-  flex-shrink: 0;
-  padding: 1rem 0 0 0;
-  background: linear-gradient(to top, var(--bg-color) 60%, transparent);
-  z-index: 10;
+/* FAB & Forms */
+.fab-container {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.fab-button {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  cursor: pointer;
+  padding: 0;
+}
+
+.fab-form {
+  background: var(--bg-color);
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+  width: calc(100vw - 3rem);
+  max-width: 500px;
 }
 
 .todo-form {
