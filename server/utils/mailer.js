@@ -2,22 +2,43 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD
+const getEmailCredentials = () => {
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
+  const rawPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').trim();
+  const cleanedPass = rawPass.replace(/\s+/g, '');
+  const pass = (cleanedPass.length === 16) ? cleanedPass : rawPass;
+  return { user, pass };
+};
+
+const getTransporter = () => {
+  const { user, pass } = getEmailCredentials();
+  if (!user || !pass) return null;
+
+  if (process.env.SMTP_HOST) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+      auth: { user, pass }
+    });
   }
-});
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass }
+  });
+};
 
 export const sendDailyReminderEmail = async (email, name, missedCount) => {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.log('Skipping email send: GMAIL credentials not configured.');
+  const { user } = getEmailCredentials();
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log('Skipping email send: Email credentials not configured.');
     return false;
   }
 
   const mailOptions = {
-    from: `"TodoPro Reminders" <${process.env.GMAIL_USER}>`,
+    from: `"TodoPro Reminders" <${user}>`,
     to: email,
     subject: '⚠️ You missed some daily tasks today!',
     html: `
@@ -46,19 +67,21 @@ export const sendDailyReminderEmail = async (email, name, missedCount) => {
     console.log(`Email sent to ${email}: ${info.response}`);
     return true;
   } catch (error) {
-    console.error(`Error sending email to ${email}:`, error);
+    console.error(`Error sending email to ${email}:`, error.message || error);
     return false;
   }
 };
 
 export const sendInstantReminderEmail = async (email, name, taskText) => {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.log('Skipping email send: GMAIL credentials not configured.');
+  const { user } = getEmailCredentials();
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log('Skipping email send: Email credentials not configured.');
     return false;
   }
 
   const mailOptions = {
-    from: `"TodoPro Reminders" <${process.env.GMAIL_USER}>`,
+    from: `"TodoPro Reminders" <${user}>`,
     to: email,
     subject: `🔔 Reminder: ${taskText}`,
     html: `
@@ -88,18 +111,20 @@ export const sendInstantReminderEmail = async (email, name, taskText) => {
     const info = await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
-    console.error(`Error sending instant email to ${email}:`, error);
+    console.error(`Error sending instant email to ${email}:`, error.message || error);
     return false;
   }
 };
 export const sendOTPEmail = async (email, otp) => {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.log('Skipping email send: GMAIL credentials not configured. OTP is:', otp);
+  const { user } = getEmailCredentials();
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.log('Skipping email send: Email credentials not configured. OTP is:', otp);
     return false;
   }
 
   const mailOptions = {
-    from: `"TodoPro Auth" <${process.env.GMAIL_USER}>`,
+    from: `"TodoPro Auth" <${user}>`,
     to: email,
     subject: `Your Login Code: ${otp}`,
     html: `
@@ -115,10 +140,11 @@ export const sendOTPEmail = async (email, otp) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${email}: ${info.response}`);
     return true;
   } catch (error) {
-    console.error(`Error sending OTP email to ${email}:`, error);
+    console.error(`Error sending OTP email to ${email}:`, error.message || error);
     return false;
   }
 };

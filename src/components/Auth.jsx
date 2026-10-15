@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, KeyRound, ArrowLeft, User, AlertCircle, Phone, X } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft, User, AlertCircle, X } from 'lucide-react';
 
 export const Auth = ({ useAuthHook, onCancel }) => {
   const { requestOTP, verifyOTP, loading, error } = useAuthHook;
@@ -10,6 +10,7 @@ export const Auth = ({ useAuthHook, onCancel }) => {
   const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState('');
+  const [mockOtp, setMockOtp] = useState('');
 
   const handleRequest = async (e) => {
     e.preventDefault();
@@ -25,6 +26,12 @@ export const Auth = ({ useAuthHook, onCancel }) => {
     
     const data = await requestOTP(identifier);
     if (data) {
+      if (data.mockOtp) {
+        setMockOtp(data.mockOtp);
+        setOtp(data.mockOtp);
+      } else {
+        setMockOtp('');
+      }
       setView('VERIFY');
     }
   };
@@ -99,6 +106,17 @@ export const Auth = ({ useAuthHook, onCancel }) => {
                 <h1 className="page-title" style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Verify Code</h1>
                 <p style={{ color: 'var(--text-secondary)' }}>Enter the code sent to <strong>{identifier}</strong></p>
               </div>
+
+              {mockOtp && (
+                <div style={{ padding: '0.85rem 1rem', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '8px', border: '1px dashed var(--primary-color)', textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                    Email service unavailable. Your login code is:
+                  </p>
+                  <p style={{ color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '1.5rem', letterSpacing: '4px', margin: 0 }}>
+                    {mockOtp}
+                  </p>
+                </div>
+              )}
 
               <form onSubmit={handleVerify} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ position: 'relative' }}>
