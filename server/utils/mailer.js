@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const getEmailCredentials = () => {
+export const getEmailCredentials = () => {
   const user = (
     process.env.ADMIN_MAIL_TO_SEND_PASSWORD ||
     process.env.SMTP_USER ||
@@ -20,12 +20,12 @@ const getEmailCredentials = () => {
   // Remove surrounding quotes if present
   rawPass = rawPass.replace(/^['"]|['"]$/g, '');
 
-  const cleanedPass = rawPass.replace(/\s+/g, '');
-  const pass = (cleanedPass.length === 16) ? cleanedPass : rawPass;
+  // Strip all internal whitespace (Google App Passwords are 16 letters with optional display spaces)
+  const pass = rawPass.replace(/\s+/g, '');
   return { user, pass };
 };
 
-const getTransporter = () => {
+export const getTransporter = () => {
   const { user, pass } = getEmailCredentials();
   if (!user || !pass) return null;
 
@@ -40,6 +40,9 @@ const getTransporter = () => {
 
   return nodemailer.createTransport({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: { user, pass }
   });
 };
@@ -131,13 +134,14 @@ export const sendInstantReminderEmail = async (email, name, taskText) => {
   }
 };
 export const sendOTPEmail = async (email, otp) => {
-  const { user } = getEmailCredentials();
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.log('Skipping email send: Email credentials not configured. OTP is:', otp);
-    return false;
+  const { user, pass } = getEmailCredentials();
+  if (!user || !pass) {
+    const errorMsg = 'Email credentials missing on server (ADMIN_MAIL_TO_SEND_PASSWORD or ADMIN_MAIL_PASSWORD not set)';
+    console.log(`Skipping email send: ${errorMsg}. OTP is: ${otp}`);
+    return { success: false, error: errorMsg };
   }
 
+  const transporter = getTransporter();
   const mailOptions = {
     from: `"TodoPro Auth" <${user}>`,
     to: email,
@@ -156,11 +160,12 @@ export const sendOTPEmail = async (email, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${email}: ${info.response}`);
-    return true;
+    console.log(`Email sent to ${email}: ${info.response || info.messageId}`);
+    return { success: true, info };
   } catch (error) {
-    console.error(`Error sending OTP email to ${email}:`, error.message || error);
-    return false;
+    const errorMsg = error.message || String(error);
+    console.error(`Error sending OTP email to ${email}:`, errorMsg);
+    return { success: false, error: errorMsg };
   }
 };
 

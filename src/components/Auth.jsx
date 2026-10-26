@@ -11,6 +11,7 @@ export const Auth = ({ useAuthHook, onCancel }) => {
   const [otp, setOtp] = useState('');
   const [localError, setLocalError] = useState('');
   const [mockOtp, setMockOtp] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const handleRequest = async (e) => {
     e.preventDefault();
@@ -28,9 +29,11 @@ export const Auth = ({ useAuthHook, onCancel }) => {
     if (data) {
       if (data.mockOtp) {
         setMockOtp(data.mockOtp);
+        setEmailError(data.emailError || '');
         setOtp(data.mockOtp);
       } else {
         setMockOtp('');
+        setEmailError('');
       }
       setView('VERIFY');
     }
@@ -110,7 +113,7 @@ export const Auth = ({ useAuthHook, onCancel }) => {
               {mockOtp && (
                 <div style={{ padding: '0.85rem 1rem', background: 'rgba(59, 130, 246, 0.12)', borderRadius: '8px', border: '1px dashed var(--primary-color)', textAlign: 'center', marginBottom: '1.25rem' }}>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                    Email service unavailable. Your login code is:
+                    {emailError ? `Email notice: ${emailError}` : 'Email service unavailable. Your login code is:'}
                   </p>
                   <p style={{ color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '1.5rem', letterSpacing: '4px', margin: 0 }}>
                     {mockOtp}

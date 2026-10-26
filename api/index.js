@@ -33,6 +33,53 @@ if (!process.env.JWT_SECRET) {
   console.warn("WARNING: JWT_SECRET is not defined in environment variables! Logins will fail.");
 }
 
+// Diagnostics route to test and verify SMTP status
+app.get('/api/test-mail', async (req, res) => {
+  try {
+    const { getEmailCredentials, getTransporter } = await import('../server/utils/mailer.js');
+    const { user, pass } = getEmailCredentials();
+    const hasUser = Boolean(user);
+    const hasPass = Boolean(pass);
+    const passLength = pass ? pass.length : 0;
+    const userPreview = user ? `${user.slice(0, 3)}***@${user.split('@')[1] || ''}` : 'none';
+
+    const configuredEnvKeys = Object.keys(process.env).filter(k => 
+      k.includes('MAIL') || k.includes('SMTP') || k.includes('GMAIL')
+    );
+
+    if (!hasUser || !hasPass) {
+      return res.status(500).json({
+        success: false,
+        error: 'Missing credentials in environment variables',
+        hasUser,
+        hasPass,
+        configuredEnvKeys
+      });
+    }
+
+    const transporter = getTransporter();
+    await transporter.verify();
+
+    return res.json({
+      success: true,
+      message: 'SMTP credentials verified successfully with Google!',
+      user: userPreview,
+      passLength,
+      configuredEnvKeys
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      response: err.response,
+      configuredEnvKeys: Object.keys(process.env).filter(k => 
+        k.includes('MAIL') || k.includes('SMTP') || k.includes('GMAIL')
+      )
+    });
+  }
+});
+
 // Request OTP
 app.post('/api/auth/request-otp', async (req, res) => {
   try {
@@ -48,12 +95,14 @@ app.post('/api/auth/request-otp', async (req, res) => {
     await OTP.deleteMany({ identifier });
     await new OTP({ identifier, code: otpCode }).save();
 
-    const sent = await sendOTPEmail(identifier, otpCode);
-    if (!sent) {
-      console.warn(`[OTP Fallback] Email delivery failed or unconfigured for ${identifier}. Fallback OTP: ${otpCode}`);
+    const result = await sendOTPEmail(identifier, otpCode);
+    if (!result || !result.success) {
+      const errorMsg = result?.error || 'Email service unavailable';
+      console.warn(`[OTP Fallback] Email delivery failed for ${identifier}: ${errorMsg}. Fallback OTP: ${otpCode}`);
       return res.json({ 
         message: 'Email service unavailable. Use the code shown to log in.', 
-        mockOtp: otpCode 
+        mockOtp: otpCode,
+        emailError: errorMsg
       });
     }
 
