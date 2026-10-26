@@ -3,8 +3,23 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const getEmailCredentials = () => {
-  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
-  const rawPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').trim();
+  const user = (
+    process.env.ADMIN_MAIL_TO_SEND_PASSWORD ||
+    process.env.SMTP_USER ||
+    process.env.GMAIL_USER ||
+    ''
+  ).trim();
+
+  let rawPass = (
+    process.env.ADMIN_MAIL_PASSWORD ||
+    process.env.SMTP_PASS ||
+    process.env.GMAIL_APP_PASSWORD ||
+    ''
+  ).trim();
+
+  // Remove surrounding quotes if present
+  rawPass = rawPass.replace(/^['"]|['"]$/g, '');
+
   const cleanedPass = rawPass.replace(/\s+/g, '');
   const pass = (cleanedPass.length === 16) ? cleanedPass : rawPass;
   return { user, pass };
