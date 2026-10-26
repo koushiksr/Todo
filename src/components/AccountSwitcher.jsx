@@ -15,13 +15,17 @@ export const AccountSwitcher = ({ accounts, activeAccountId, switchAccount, logo
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   if (!activeAccount) return null;
 
   return (
-    <div className="account-switcher" ref={dropdownRef} style={{ position: 'relative' }}>
+    <div className="account-switcher" ref={dropdownRef} style={{ position: 'relative', zIndex: isOpen ? 50 : 5 }}>
       <button 
         className="nav-item" 
         onClick={() => setIsOpen(!isOpen)}
@@ -66,9 +70,9 @@ export const AccountSwitcher = ({ accounts, activeAccountId, switchAccount, logo
               background: 'var(--surface-color)',
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
               width: '260px',
-              zIndex: 100,
+              zIndex: 50,
               overflow: 'hidden'
             }}
           >

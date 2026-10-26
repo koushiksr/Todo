@@ -88,7 +88,7 @@ function App() {
       />
       
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem', position: 'relative', zIndex: 10 }}>
           <AccountSwitcher 
             accounts={authHook.accounts}
             activeAccountId={authHook.activeAccountId}

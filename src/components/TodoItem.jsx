@@ -58,6 +58,10 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
+  const handlePointerMove = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
   const handleDragEnd = async (event, info) => {
     if (isEditing) return; // Disable swipe while editing
     const offset = info.offset.x;
@@ -125,7 +129,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
 
       <motion.div
         className="todo-card"
-        style={{ x, zIndex: 1 }}
+        style={{ x, zIndex: showMenu ? 30 : 2 }}
         drag={isDeleted || isEditing ? false : "x"}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
@@ -134,6 +138,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
         initial={{ x: 0, opacity: 1 }}
         onDoubleClick={() => !isDeleted && setIsEditing(true)}
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={handlePointerCancel}
         onPointerLeave={handlePointerCancel}
         onPointerCancel={handlePointerCancel}
@@ -269,7 +274,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
     return (
       <motion.div 
         className="reorder-item-wrapper"
-        style={{ zIndex: showMenu ? 50 : 1 }}
+        style={{ zIndex: showMenu ? 30 : 2, position: 'relative' }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
@@ -285,7 +290,7 @@ export const TodoItem = ({ todo, onToggle, onEdit, onDelete, onRestore, isReorde
       value={todo} 
       id={todo.id}
       className="reorder-item-wrapper"
-      style={{ zIndex: showMenu ? 50 : 1 }}
+      style={{ zIndex: showMenu ? 30 : 2, position: 'relative' }}
       dragListener={false} 
       dragControls={dragControls}
       variants={{

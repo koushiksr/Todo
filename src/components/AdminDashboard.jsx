@@ -128,7 +128,7 @@ export const AdminDashboard = ({ token }) => {
   }
 
   return (
-    <>
+    <div className="admin-container">
       <div className="page-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 className="page-title">Admin Dashboard</h1>
@@ -221,6 +221,6 @@ export const AdminDashboard = ({ token }) => {
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 };
